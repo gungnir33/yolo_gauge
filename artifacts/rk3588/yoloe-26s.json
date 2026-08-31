@@ -7,6 +7,10 @@
   "dynamic": false,
   "end2end_output": "1xNx6",
   "imgsz": 960,
+  "input_shape": [
+    544,
+    960
+  ],
   "opset": 19,
   "prompts": [
     "analog gauge",

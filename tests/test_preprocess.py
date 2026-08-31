@@ -32,3 +32,14 @@ def test_onnx_tensor_is_normalized_nchw_float32():
     assert tensor.max() == 1.0
     assert transform.input_size == 32
 
+
+def test_onnx_tensor_accepts_static_rectangular_input_shape():
+    image = np.zeros((1080, 1920, 3), dtype=np.uint8)
+
+    tensor, transform = onnx_tensor(image, (544, 960), (114, 114, 114))
+
+    assert tensor.shape == (1, 3, 544, 960)
+    assert transform.ratio == pytest.approx(0.5)
+    assert transform.pad_x == 0
+    assert transform.pad_y == 2
+    assert transform.input_size == (544, 960)

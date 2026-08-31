@@ -10,7 +10,8 @@
 
 - 模型：`yoloe-26s-seg.pt`
 - Ultralytics：`8.4.121`
-- 输入尺寸：`960`
+- PyTorch 推理尺寸：`imgsz=960`，使用 Ultralytics 原生最小矩形预处理
+- 部署静态输入：`1×3×544×960`，匹配当前固定 1920×1080 图像的原生预处理结果
 - Text Prompt：`analog gauge`、`dial gauge`、`pressure gauge`、`pressure meter`、`industrial gauge`
 - 检测阈值：`conf=0.15`、`iou=0.50`、`agnostic_nms=true`
 - 后处理：每张图最多保留一个目标；最高置信度框出现嵌套时保留所在嵌套组的最大框
@@ -47,7 +48,7 @@
 6. 导出两份静态图：主机 ONNX 保留 end-to-end `1×300×6` 输出；RKNN 源图关闭 end-to-end，输出解码后的框通道和类别分数。
 7. 验证两份模型均不包含 mask 业务输出，并记录实际输入、输出张量名称、Shape 和 dtype。
 
-提示词在导出模型中静态固化。修改提示词、模型权重或输入尺寸后必须重新导出 ONNX/RKNN，不支持在 RK3588 运行时调用 `set_classes()`。
+提示词在导出模型中静态固化。修改提示词、模型权重或部署输入 Shape 后必须重新导出 ONNX/RKNN，不支持在 RK3588 运行时调用 `set_classes()`。
 
 ### 运行时后端
 
@@ -66,7 +67,7 @@ class InferenceBackend:
 - 输入：非空 OpenCV BGR `uint8`，形状 `H×W×3`
 - 颜色：BGR 转 RGB，只转换一次
 - Resize：保持长宽比的 letterbox
-- 输入尺寸：静态方形，第一版为 960
+- 输入尺寸：静态矩形，第一版为高 544、宽 960；该 Shape 对应当前固定 1920×1080 图像在 `imgsz=960` 下按 stride=32 对齐的最小矩形
 - Batch：1
 - Padding 颜色、缩放比例、左右/上下 padding 必须显式记录
 - 归一化只能由应用或 RKNN 配置中的一方完成，不得重复
@@ -86,7 +87,7 @@ class InferenceBackend:
 
 ## 配置与命令行
 
-新增独立 `configs/rk3588.yaml`，默认仍保留 `configs/default.yaml`。配置至少包括：
+新增独立 `configs/rk3588.yaml`，默认仍保留 `configs/default.yaml`。`imgsz` 保留为 Prompt profile 和 PyTorch 配置，`input_shape` 单独描述部署模型的静态 `[height,width]`。配置至少包括：
 
 - `backend`: `pytorch`、`onnx` 或 `rknn`
 - 各后端模型路径
@@ -125,7 +126,7 @@ CLI 在现有 `detect`、`detect-dir` 入口中根据配置选择后端，不新
 
 - 在没有安装 RKNN 的现有环境中，转换模块仍可导入，并给出明确的依赖错误。
 - 测试校准清单生成、配置解析、FP16/INT8 参数映射。
-- 先生成 960 FP16 RKNN；主机只验证模型生成、元数据和模拟器能力，不将模拟器结果冒充板端结果。
+- 先生成 544×960 FP16 RKNN；主机只验证模型生成、元数据和模拟器能力，不将模拟器结果冒充板端结果。
 - FP16 通过后才尝试 INT8；INT8 校准集必须包含关键图和负样本。
 
 ### 阶段 5：RKNNLite Python 后端

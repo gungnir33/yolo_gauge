@@ -122,3 +122,39 @@ def test_export_detection_onnx_uses_static_batch_one_contract(tmp_path):
     }
     metadata = output.with_suffix(".json")
     assert metadata.is_file()
+
+
+def test_export_detection_onnx_uses_runtime_input_shape_when_configured(tmp_path):
+    checkpoint = tmp_path / "yoloe-26s-seg.pt"
+    checkpoint.write_bytes(b"weights")
+    prompts = ["dial gauge"]
+    profile = _write_profile(tmp_path, checkpoint, prompts)
+    config = tmp_path / "config.yaml"
+    config.write_text(
+        f"model:\n  name: {checkpoint}\n  imgsz: 960\n  input_shape: [544, 960]\n"
+        "text_prompt:\n  prompts: [dial gauge]\n",
+        encoding="utf-8",
+    )
+
+    class FakeYOLOE:
+        instance = None
+
+        def __init__(self, architecture):
+            FakeYOLOE.instance = self
+
+        def load(self, checkpoint_path):
+            return self
+
+        def load_prompt_embeddings(self, profile_path):
+            pass
+
+        def export(self, **kwargs):
+            self.export_options = kwargs
+            output = tmp_path / "runtime-shape.onnx"
+            output.write_bytes(b"onnx")
+            return output
+
+    output = export_detection_onnx(config, profile, tmp_path / "exported", model_factory=FakeYOLOE)
+
+    assert FakeYOLOE.instance.export_options["imgsz"] == (544, 960)
+    assert '"input_shape": [\n    544,\n    960\n  ]' in output.with_suffix(".json").read_text(encoding="utf-8")

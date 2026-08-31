@@ -1,14 +1,13 @@
 model:
-  backend: pytorch
+  backend: onnx
   name: yoloe-26s-seg.pt
   onnx_path: artifacts/rk3588/yoloe-26s.onnx
-  rknn_path: artifacts/rk3588/yoloe-26s-rk3588-fp16.rknn
-  device: auto
   imgsz: 960
-  half: true
+  input_shape: [544, 960]
+  device: cpu
+  half: false
   pad_color: [114, 114, 114]
 text_prompt:
-  # 当前场景为模拟/指针仪表；避免宽泛 Prompt 将铭牌、面板误识别为仪表。
   prompts:
     - analog gauge
     - dial gauge
@@ -22,7 +21,6 @@ detection:
   agnostic_nms: true
   max_det: 20
 postprocess:
-  # 当前业务约束：每张图片最多只有一个目标仪表。
   single_target:
     enabled: true
     containment_threshold: 0.90

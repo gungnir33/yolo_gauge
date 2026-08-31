@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import logging
-import time
 
 import numpy as np
 
+from .backends import create_backend
 from .config import load_config
 from .io_utils import read_image
-from .model import YOLOEModel
 from .postprocess import filter_geometry, remove_duplicate_boxes, select_single_target, sort_detections
 from .types import Detection, DetectionResult
 
@@ -31,9 +30,7 @@ class GaugeDetector:
         if not bool(detection_cfg.get("agnostic_nms", True)):
             raise ValueError("Text Prompt Ensemble requires detection.agnostic_nms=true.")
         runtime_model = self.config["model"]["name"]
-        model_cfg = self.config["model"]
-        self.model = YOLOEModel(runtime_model, model_cfg["device"], model_cfg["imgsz"], model_cfg["half"])
-        self.model.set_text_prompts(self.text_prompts)
+        self.model = create_backend(self.config)
         LOGGER.info(
             "Detector mode: YOLOE Text Prompt | Model: %s | Unified class: %s | Text prompts: %d | "
             "Confidence: %.2f | IoU: %.2f | Class-agnostic NMS: enabled",
@@ -57,26 +54,17 @@ class GaugeDetector:
             raise ValueError("image must be a non-empty BGR ndarray with shape HxWx3.")
         height, width = image.shape[:2]
         detection_cfg = self.config["detection"]
-        started = time.perf_counter()
-        results = self.model.predict(
+        prediction = self.model.predict(
             image,
             conf=detection_cfg["conf"],
             iou=detection_cfg["iou"],
-            agnostic_nms=True,
             max_det=detection_cfg["max_det"],
         )
-        elapsed_ms = (time.perf_counter() - started) * 1000
-        detections: list[Detection] = []
-        result = results[0]
-        if result.boxes is not None and len(result.boxes):
-            xyxy = result.boxes.xyxy.detach().cpu().numpy()
-            confidence = result.boxes.conf.detach().cpu().numpy()
-            for box, score in zip(xyxy, confidence):
-                x1, y1, x2, y2 = box.tolist()
-                x1, y1 = max(0.0, x1), max(0.0, y1)
-                x2, y2 = min(float(width), x2), min(float(height), y2)
-                if x2 > x1 and y2 > y1:
-                    detections.append(Detection(0, self.unified_class_name, float(score), x1, y1, x2, y2))
+        elapsed_ms = prediction.inference_ms
+        detections = [
+            Detection(0, self.unified_class_name, item.confidence, item.x1, item.y1, item.x2, item.y2)
+            for item in prediction.detections
+        ]
         post_cfg = self.config["postprocess"]
         # Ultralytics receives agnostic_nms=True above. Apply the same class-independent
         # IoU threshold once more at the business boundary so duplicate Prompt boxes

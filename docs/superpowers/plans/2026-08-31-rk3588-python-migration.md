@@ -16,7 +16,7 @@
 - 不改变现有单目标、嵌套框、JSON、裁剪和绘图语义。
 - 每个生产代码变化必须先有失败测试，并观察到预期失败。
 - 每个任务完成后运行该任务的定向测试和全量单元测试。
-- 第一版固定 `batch=1`、`imgsz=960`、静态 Shape、RK3588、FP16。
+- 第一版固定 `batch=1`、PyTorch/Profile `imgsz=960`、部署静态 Shape `1×3×544×960`、RK3588、FP16。
 - `detect-01`、`detect-09`、`detect-10` 必须检出，最终框相对主机基线 IoU 不低于 0.80。
 - 当前 `.venv` 不安装 RKNN-Toolkit2；RKNN 转换使用独立 Python 3.10 环境。
 - RK3588 真实推理、NPU 延迟、多核和温度测试必须在板端完成，不以主机模拟结果替代。
@@ -159,7 +159,7 @@ Expected: import fails because `detection_yaml_for_checkpoint` is missing.
 
 - [ ] **Step 3: Implement minimal pure detection exporter**
 
-Build `YOLOE("yoloe-26s.yaml").load("yoloe-26s-seg.pt")`, load the validated NPZ profile, and export with `format="onnx"`, `imgsz=960`, `batch=1`, `dynamic=False`, `opset=19`, `simplify=False`, `nms=False` and CPU device. Move the resulting file into the requested output directory and save model metadata beside it.
+Build `YOLOE("yoloe-26s.yaml").load("yoloe-26s-seg.pt")`, load the validated NPZ profile, and export with `format="onnx"`, `imgsz=(544,960)`, `batch=1`, `dynamic=False`, `opset=19`, `simplify=False`, `nms=False` and CPU device. Move the resulting file into the requested output directory and save model metadata beside it.
 
 - [ ] **Step 4: Run unit tests**
 
@@ -188,7 +188,7 @@ PYTHONPATH=src .venv/bin/python -m gauge_detector export-onnx \
   --output artifacts/rk3588
 ```
 
-Run ONNX checker and an ONNX Runtime zero-input inference. Expected input is static `1×3×960×960`; expected end-to-end output is `1×N×6` with `[x1,y1,x2,y2,confidence,class_id]`. If the output contract differs, stop this task and update the design before writing a decoder.
+Run ONNX checker and an ONNX Runtime zero-input inference. Expected input is static `1×3×544×960`; expected end-to-end output is `1×N×6` with `[x1,y1,x2,y2,confidence,class_id]`. If the output contract differs, stop this task and update the design before writing a decoder.
 
 - [ ] **Step 7: Commit**
 
@@ -331,7 +331,7 @@ bash scripts/run_detection.sh \
   --output "outputs/rk3588_pytorch_after_backend_refactor"
 ```
 
-Expected: 11/11 images have one detection and `detect-01/09/10` boxes have IoU at least 0.99 against `outputs/rk3588_host_baseline` because the PyTorch path is behavior-preserving.
+Expected: 11/11 images have one detection and all boxes have IoU at least 0.99 against `outputs/rk3588_host_baseline` because the PyTorch path is behavior-preserving. The ONNX static Shape must also reproduce all 11 selected boxes; a square 960×960 input is rejected because it changes candidate ranking on `detect-02`.
 
 - [ ] **Step 7: Commit**
 

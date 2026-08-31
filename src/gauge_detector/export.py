@@ -8,6 +8,7 @@ from typing import Any, Callable
 
 from .config import load_config
 from .model import YOLOEModel
+from .preprocess import normalize_input_shape
 from .prompt_profile import load_profile_metadata, validate_profile
 
 
@@ -59,6 +60,10 @@ def export_detection_onnx(
     checkpoint = Path(model_config["name"])
     prompts = config["text_prompt"]["prompts"]
     imgsz = int(model_config["imgsz"])
+    configured_shape = model_config.get("input_shape")
+    export_imgsz: int | tuple[int, int] = imgsz
+    if configured_shape is not None:
+        export_imgsz = normalize_input_shape(configured_shape)
     architecture = detection_yaml_for_checkpoint(checkpoint)
     model = build_detection_only_model(
         checkpoint,
@@ -70,7 +75,7 @@ def export_detection_onnx(
     exported_path = Path(
         model.export(
             format="onnx",
-            imgsz=imgsz,
+            imgsz=export_imgsz,
             batch=1,
             dynamic=False,
             opset=19,
@@ -95,6 +100,7 @@ def export_detection_onnx(
         "checkpoint_sha256": metadata.checkpoint_sha256,
         "prompts": list(metadata.prompts),
         "imgsz": imgsz,
+        "input_shape": list(normalize_input_shape(export_imgsz)),
         "batch": 1,
         "dynamic": False,
         "opset": 19,
