@@ -17,6 +17,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "imgsz": 960,
         "half": True,
         "pad_color": [114, 114, 114],
+        "core_mask": "AUTO",
     },
     "text_prompt": {"prompts": [], "unified_class_name": "instrument"},
     "detection": {"conf": 0.25, "iou": 0.50, "agnostic_nms": True, "max_det": 20},

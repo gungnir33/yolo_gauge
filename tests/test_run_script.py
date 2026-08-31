@@ -122,3 +122,15 @@ def test_one_click_script_rejects_missing_input(tmp_path):
     result = run_script("--input", str(tmp_path / "missing"))
     assert result.returncode == 2
     assert "输入路径不存在" in result.stderr
+
+
+def test_rknn_launch_script_help():
+    script = Path("scripts/run_rknn_detection.sh")
+
+    result = subprocess.run(["bash", str(script), "--help"], text=True, capture_output=True, check=False)
+
+    assert result.returncode == 0
+    assert "--model" in result.stdout
+    assert "--input" in result.stdout
+    assert "--output" in result.stdout
+    assert "--core-mask" in result.stdout

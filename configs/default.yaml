@@ -7,6 +7,7 @@ model:
   imgsz: 960
   half: true
   pad_color: [114, 114, 114]
+  core_mask: AUTO
 text_prompt:
   # 当前场景为模拟/指针仪表；避免宽泛 Prompt 将铭牌、面板误识别为仪表。
   prompts:

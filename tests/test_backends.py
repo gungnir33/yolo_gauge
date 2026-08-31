@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from gauge_detector.backends import BackendPrediction, ONNXBackend, PyTorchBackend, create_backend
+from gauge_detector.backends import BackendPrediction, ONNXBackend, PyTorchBackend, RKNNLiteBackend, create_backend
 from gauge_detector.config import load_config
 from gauge_detector.types import Detection
 
@@ -28,6 +28,7 @@ def test_default_config_keeps_pytorch_backend_and_portable_padding():
 
     assert config["model"]["backend"] == "pytorch"
     assert config["model"]["pad_color"] == [114, 114, 114]
+    assert config["model"]["core_mask"] == "AUTO"
 
 
 def test_backend_factory_defaults_to_pytorch_with_injected_model():
@@ -162,3 +163,75 @@ def test_gauge_detector_uses_backend_candidates_and_keeps_business_postprocess(m
     assert backend.warmup_runs == 2
     assert result.inference_ms == 12.5
     assert result.detections[0].xyxy == [0, 0, 80, 80]
+
+
+class FakeRKNNLite:
+    NPU_CORE_AUTO = "AUTO"
+    NPU_CORE_0 = "CORE_0"
+    NPU_CORE_1 = "CORE_1"
+    NPU_CORE_2 = "CORE_2"
+    NPU_CORE_0_1 = "CORE_0_1"
+    NPU_CORE_0_1_2 = "CORE_0_1_2"
+
+    def __init__(self, load_result=0, init_result=0):
+        self.load_result = load_result
+        self.init_result = init_result
+        self.load_calls = []
+        self.init_calls = []
+        self.inference_calls = []
+        self.release_calls = 0
+
+    def load_rknn(self, path):
+        self.load_calls.append(path)
+        return self.load_result
+
+    def init_runtime(self, *, core_mask):
+        self.init_calls.append(core_mask)
+        return self.init_result
+
+    def inference(self, *, inputs):
+        self.inference_calls.append(inputs)
+        return [np.array([[[50], [50], [20], [20], [0.9]]], dtype=np.float32)]
+
+    def release(self):
+        self.release_calls += 1
+
+
+def test_rknnlite_backend_initializes_once_decodes_raw_output_and_releases():
+    runtime = FakeRKNNLite()
+    backend = RKNNLiteBackend(
+        "model.rknn", (100, 100), (114, 114, 114), core_mask="AUTO", runtime_factory=lambda: runtime
+    )
+    image = np.zeros((100, 100, 3), dtype=np.uint8)
+    image[0, 0] = [1, 2, 3]
+
+    prediction = backend.predict(image, conf=0.15, iou=0.5, max_det=20)
+    backend.close()
+    backend.close()
+
+    assert prediction.detections[0].xyxy == pytest.approx([40, 40, 60, 60])
+    assert runtime.load_calls == ["model.rknn"]
+    assert runtime.init_calls == ["AUTO"]
+    assert runtime.inference_calls[0][0][0, 0].tolist() == [3, 2, 1]
+    assert runtime.release_calls == 1
+
+
+def test_rknnlite_backend_releases_when_runtime_initialization_fails():
+    runtime = FakeRKNNLite(init_result=-1)
+
+    with pytest.raises(RuntimeError, match="init_runtime"):
+        RKNNLiteBackend("model.rknn", 100, (114, 114, 114), runtime_factory=lambda: runtime)
+
+    assert runtime.release_calls == 1
+
+
+def test_backend_factory_selects_rknn_and_core_mask():
+    config = _config("rknn")
+    config["model"].update({"rknn_path": "model.rknn", "input_shape": [54, 96], "core_mask": "CORE_0_1_2"})
+    runtime = FakeRKNNLite()
+
+    backend = create_backend(config, rknn_runtime_factory=lambda: runtime)
+
+    assert isinstance(backend, RKNNLiteBackend)
+    assert backend.input_shape == (54, 96)
+    assert runtime.init_calls == ["CORE_0_1_2"]
