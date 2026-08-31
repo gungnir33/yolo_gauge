@@ -213,6 +213,7 @@ git commit -m "feat: export static detection-only YOLOE ONNX"
 - Produces: `onnx_tensor(image, size, pad_color) -> tuple[np.ndarray, LetterboxTransform]`
 - Produces: `restore_xyxy(box, transform, image_shape) -> tuple[float, float, float, float]`
 - Produces: `decode_end2end_output(output, transform, image_shape, conf) -> list[Detection]`
+- Produces: `decode_raw_output(output, transform, image_shape, conf, iou, max_det) -> list[Detection]`
 
 - [ ] **Step 1: Write failing letterbox tests with hand-derived values**
 
@@ -259,6 +260,8 @@ def test_decoder_rejects_unknown_output_shape():
 Run: `PYTHONPATH=src .venv/bin/python -m pytest tests/test_runtime_output.py -v`
 
 Then implement strict `(1,N,6)` parsing, finite-value checks, thresholding, class unification, coordinate clipping and zero-area rejection.
+
+Add a second failing fixture for RKNN raw output shaped `(1, 4+nc, anchors)`. Implement `xywh→xyxy`, maximum class score selection, class-agnostic NMS and `max_det`; do not implement DFL because YOLOE export has already decoded the box channels before this output boundary.
 
 Run: `PYTHONPATH=src .venv/bin/python -m pytest tests/test_preprocess.py tests/test_runtime_output.py -v`
 
@@ -430,7 +433,7 @@ Run: `PYTHONPATH=src .venv/bin/python -m pytest tests/test_rknn_export.py -v`
 
 - [ ] **Step 3: Implement optional RKNN dependency boundary**
 
-Import `rknn.api.RKNN` only inside `convert_onnx_to_rknn`. Configure `mean_values=[[0,0,0]]`, `std_values=[[255,255,255]]`, `target_platform="rk3588"`; call `load_onnx`, `build(do_quantization=False, rknn_batch_size=1)` for FP16, check every return code, export the model, release in `finally`, and save build metadata JSON.
+Import `rknn.api.RKNN` only inside `convert_onnx_to_rknn`. The source ONNX must be separately exported with `end2end=False`; reject `1×N×6` end-to-end models before conversion. Configure `mean_values=[[0,0,0]]`, `std_values=[[255,255,255]]`, `target_platform="rk3588"`; call `load_onnx`, `build(do_quantization=False, rknn_batch_size=1)` for FP16, check every return code, export the model, release in `finally`, and save build metadata JSON.
 
 - [ ] **Step 4: Run tests in the existing environment**
 
@@ -506,7 +509,7 @@ Run: `PYTHONPATH=src .venv/bin/python -m pytest tests/test_backends.py -v`
 
 - [ ] **Step 3: Implement RKNNLite backend**
 
-Import `rknnlite.api.RKNNLite` only when the backend is selected. Load and initialize once, use RGB uint8 NHWC input because normalization is baked into RKNN conversion, call `inference(inputs=[input_array])`, decode strict `1×N×6` output, and make `close()` idempotent. Map `AUTO`, `CORE_0`, `CORE_1`, `CORE_2`, `CORE_0_1`, `CORE_0_1_2` to RKNNLite constants.
+Import `rknnlite.api.RKNNLite` only when the backend is selected. Load and initialize once, use RGB uint8 NHWC input because normalization is baked into RKNN conversion, call `inference(inputs=[input_array])`, decode `1×(4+nc)×anchors` 原始输出并执行类别无关 NMS，and make `close()` idempotent. Map `AUTO`, `CORE_0`, `CORE_1`, `CORE_2`, `CORE_0_1`, `CORE_0_1_2` to RKNNLite constants.
 
 - [ ] **Step 4: Run backend and full tests**
 

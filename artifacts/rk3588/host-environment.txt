@@ -1,0 +1,7 @@
+validation_date=2026-08-31
+python=3.13.5
+torch=2.13.0+cpu
+ultralytics=8.4.121
+onnx=1.18.0
+onnxruntime=1.29.0
+host=Intel Core Ultra 9 285K

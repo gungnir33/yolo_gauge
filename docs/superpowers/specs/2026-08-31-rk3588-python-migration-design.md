@@ -44,7 +44,8 @@
 3. 保存与 checkpoint 和 Prompt 列表绑定的 NPZ profile，同时保存 JSON 元数据和 SHA256。
 4. 从匹配的 `yoloe-26s.yaml` 构建纯检测模型并加载分割 checkpoint 中兼容的权重。
 5. 加载同一个 Prompt profile，导出静态、batch=1、固定尺寸的 ONNX。
-6. 验证导出模型不包含 mask 业务输出，并记录实际输入、输出张量名称、Shape 和 dtype。
+6. 导出两份静态图：主机 ONNX 保留 end-to-end `1×300×6` 输出；RKNN 源图关闭 end-to-end，输出解码后的框通道和类别分数。
+7. 验证两份模型均不包含 mask 业务输出，并记录实际输入、输出张量名称、Shape 和 dtype。
 
 提示词在导出模型中静态固化。修改提示词、模型权重或输入尺寸后必须重新导出 ONNX/RKNN，不支持在 RK3588 运行时调用 `set_classes()`。
 
@@ -75,7 +76,7 @@ class InferenceBackend:
 
 ### 后处理契约
 
-不能预设 YOLOE-26 的导出张量与 YOLOv8 相同。导出后先检查实际 ONNX 输出，再实现对应适配器。后处理完成以下行为：
+不能预设 YOLOE-26 的导出张量与 YOLOv8 相同。主机 ONNX 已实测为 `1×300×6`，格式为 `[x1,y1,x2,y2,confidence,class_id]`。Ultralytics 8.4.121 会为 RKNN 禁用 YOLO26 end-to-end Top-K，因此 RKNN 使用 `1×(4+类别数)×anchors` 原始输出：前 4 通道是已解码的 `xywh`，后续通道是类别分数，Python 后处理负责转为 `xyxy` 并执行类别无关 NMS。后处理完成以下行为：
 
 1. 将多个 Prompt 类别统一映射为 `instrument`。
 2. 执行类别无关的候选过滤和必要的 NMS。
@@ -115,7 +116,7 @@ CLI 在现有 `detect`、`detect-dir` 入口中根据配置选择后端，不新
 
 ### 阶段 3：ONNX 后端
 
-- 用手工构造张量测试 letterbox、坐标恢复、输出适配和空检测。
+- 用手工构造张量分别测试 end-to-end ONNX 输出、RKNN 原始输出、letterbox、坐标恢复和空检测。
 - 用实际 ONNX Runtime 跑 11 张图片。
 - `detect-01/09/10` 必须检出；最终框与基线 IoU 不低于 0.80。
 - 11 张图片不能产生重复业务框。
@@ -129,7 +130,7 @@ CLI 在现有 `detect`、`detect-dir` 入口中根据配置选择后端，不新
 
 ### 阶段 5：RKNNLite Python 后端
 
-- 使用依赖注入的假 Runtime 测试初始化一次、输入设置、输出读取、释放和错误传播。
+- 使用依赖注入的假 Runtime 测试初始化一次、输入设置、原始输出解码、输出读取、释放和错误传播。
 - RK3588 上再运行真实 RKNNLite 集成测试。
 - 第一轮只用 `AUTO` core mask；板端正确性通过后再比较单核、双核和三核。
 

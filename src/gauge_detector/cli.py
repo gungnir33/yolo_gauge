@@ -9,7 +9,7 @@ import cv2
 from .benchmark import evaluate, recommend, save_benchmark_csv
 from .crop import save_crops
 from .detector import GaugeDetector
-from .export import export_model
+from .export import export_detection_onnx, export_model
 from .io_utils import read_image, result_to_dict, save_json
 from .prompt_profile import prepare_prompt_profile
 from .visualization import draw_detections
@@ -75,6 +75,11 @@ def build_parser() -> argparse.ArgumentParser:
     prepare_profile = subparsers.add_parser("prepare-profile", help="Save static YOLOE text prompt embeddings")
     prepare_profile.add_argument("--output", required=True, help="Output .npz prompt profile path")
     _add_common(prepare_profile)
+
+    export_onnx = subparsers.add_parser("export-onnx", help="Export static detection-only YOLOE ONNX")
+    export_onnx.add_argument("--profile", required=True, help="Static .npz prompt profile path")
+    export_onnx.add_argument("--output", required=True, help="Output directory")
+    _add_common(export_onnx)
     return parser
 
 
@@ -136,5 +141,8 @@ def main(argv: list[str] | None = None) -> None:
         elif args.command == "prepare-profile":
             profile, metadata = prepare_prompt_profile(args.config, args.output)
             print(f"Prompt profile: {profile}\nMetadata: {metadata}")
+        elif args.command == "export-onnx":
+            output = export_detection_onnx(args.config, args.profile, args.output)
+            print(f"Detection-only ONNX: {output}")
     except (FileNotFoundError, ValueError, OSError, RuntimeError) as exc:
         parser.exit(2, f"Error: {exc}\n")
