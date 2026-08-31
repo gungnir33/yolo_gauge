@@ -116,5 +116,5 @@ def test_detector_uses_agnostic_nms_and_unifies_class(monkeypatch, tmp_path):
 def test_yoloe_import_and_model_load():
     from gauge_detector.model import YOLOEModel
 
-    model = YOLOEModel("yoloe-26n-seg.pt", device="cpu", imgsz=640, half=False)
+    model = YOLOEModel("yoloe-26s-seg.pt", device="cpu", imgsz=960, half=False)
     assert model.load() is model.raw

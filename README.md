@@ -184,6 +184,43 @@ PYTHONPATH=src .venv/bin/python -m gauge_detector export \
 
 导出前会加载模型并初始化相同的 Text Prompt。TensorRT 需要 NVIDIA GPU、匹配驱动和相关依赖。
 
+## RK3588 Python 部署
+
+默认 `configs/default.yaml` 始终使用稳定的 PyTorch 后端。RK3588 部署使用独立的 `configs/rk3588.yaml`，静态输入为 `1×3×544×960`；该尺寸与当前 1920×1080 采图在 `imgsz=960` 下的最小矩形预处理一致，不能改成 960×960 后直接沿用当前验收结果。
+
+主机准备流程：
+
+```bash
+PYTHONPATH=src .venv/bin/python -m gauge_detector prepare-profile \
+  --config configs/default.yaml \
+  --output artifacts/rk3588/gauge-prompts.npz
+
+PYTHONPATH=src .venv/bin/python -m gauge_detector export-rknn-onnx \
+  --config configs/onnx.yaml \
+  --profile artifacts/rk3588/gauge-prompts.npz \
+  --output artifacts/rk3588
+
+bash scripts/setup_rknn_env.sh
+PYTHONPATH=src .venv-rknn/bin/python -m gauge_detector convert-rknn \
+  --onnx artifacts/rk3588/yoloe-26s-rknn-source.onnx \
+  --output artifacts/rk3588/yoloe-26s-rk3588-fp16.rknn \
+  --target rk3588 --quantize 16
+```
+
+RKNN 源 ONNX 使用 YOLO26 one-to-one 检测头的 raw 输出 `(1,9,10710)`，只把 RKNN 不支持的 TopK/NMS 移到 Python；不要使用主机校验模型的 `(1,300,6)` 输出，也不要切换到 one-to-many 头。
+
+板端运行：
+
+```bash
+bash scripts/run_rknn_detection.sh \
+  --model artifacts/rk3588/yoloe-26s-rk3588-fp16.rknn \
+  --input "/path/to/images" \
+  --output outputs/rknn \
+  --core-mask AUTO
+```
+
+完整的环境匹配、复制清单、逐核测试和稳定性验收见 `docs/rk3588-python-deployment.md`。主机测试证据见 `artifacts/rk3588/host-validation.md`。
+
 ## 测试
 
 ```bash
