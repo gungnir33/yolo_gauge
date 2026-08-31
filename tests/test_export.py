@@ -1,4 +1,5 @@
 import json
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -118,7 +119,7 @@ def test_export_detection_onnx_uses_static_batch_one_contract(tmp_path):
     assert output.read_bytes() == b"onnx"
     assert FakeYOLOE.instance.export_options == {
         "format": "onnx",
-        "imgsz": 960,
+        "imgsz": (544, 960),
         "batch": 1,
         "dynamic": False,
         "opset": 19,
@@ -204,6 +205,7 @@ def test_export_rknn_source_onnx_disables_end2end_output(tmp_path):
     assert metadata["end2end_output"] == "raw"
     assert metadata["raw_head"] == "one2one"
     assert metadata["raw_box_format"] == "xywh"
+    assert metadata["onnx_sha256"] == hashlib.sha256(output.read_bytes()).hexdigest()
 
 
 def test_one2one_raw_output_reuses_nms_free_head_without_topk():

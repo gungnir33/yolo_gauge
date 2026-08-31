@@ -81,36 +81,42 @@ def compare_directory(
     if not paths:
         raise ValueError(f"No supported images found: {directory}")
     reference_detector = GaugeDetector(str(reference_config), warmup_runs=3)
-    candidate_detector = GaugeDetector(str(candidate_config), warmup_runs=3)
-    rows: list[dict[str, Any]] = []
-    for path in paths:
-        image = read_image(path)
-        reference = reference_detector.detect_array(image)
-        candidate = candidate_detector.detect_array(image)
-        reference.image_path = candidate.image_path = str(path)
-        rows.append(compare_results(reference, candidate, iou_threshold))
-    report = {
-        "reference_config": str(reference_config),
-        "candidate_config": str(candidate_config),
-        "iou_threshold": float(iou_threshold),
-        "summary": {
-            "total_images": len(rows),
-            "passed_images": sum(bool(row["passed"]) for row in rows),
-            "missed_images": [row["image"] for row in rows if row["missed"]],
-            "count_mismatch_images": [
-                row["image"] for row in rows if row["reference_count"] != row["candidate_count"]
-            ],
-            "below_iou_images": [
-                row["image"] for row in rows if row["iou"] is not None and row["iou"] < iou_threshold
-            ],
-            "reference_mean_inference_ms": mean(row["reference_inference_ms"] for row in rows),
-            "candidate_mean_inference_ms": mean(row["candidate_inference_ms"] for row in rows),
-        },
-        "images": rows,
-    }
-    destination = Path(output_dir)
-    destination.mkdir(parents=True, exist_ok=True)
-    json_path = destination / "comparison.json"
-    json_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    json_path.with_suffix(".md").write_text(_markdown_report(report), encoding="utf-8")
-    return json_path
+    candidate_detector = None
+    try:
+        candidate_detector = GaugeDetector(str(candidate_config), warmup_runs=3)
+        rows: list[dict[str, Any]] = []
+        for path in paths:
+            image = read_image(path)
+            reference = reference_detector.detect_array(image)
+            candidate = candidate_detector.detect_array(image)
+            reference.image_path = candidate.image_path = str(path)
+            rows.append(compare_results(reference, candidate, iou_threshold))
+        report = {
+            "reference_config": str(reference_config),
+            "candidate_config": str(candidate_config),
+            "iou_threshold": float(iou_threshold),
+            "summary": {
+                "total_images": len(rows),
+                "passed_images": sum(bool(row["passed"]) for row in rows),
+                "missed_images": [row["image"] for row in rows if row["missed"]],
+                "count_mismatch_images": [
+                    row["image"] for row in rows if row["reference_count"] != row["candidate_count"]
+                ],
+                "below_iou_images": [
+                    row["image"] for row in rows if row["iou"] is not None and row["iou"] < iou_threshold
+                ],
+                "reference_mean_inference_ms": mean(row["reference_inference_ms"] for row in rows),
+                "candidate_mean_inference_ms": mean(row["candidate_inference_ms"] for row in rows),
+            },
+            "images": rows,
+        }
+        destination = Path(output_dir)
+        destination.mkdir(parents=True, exist_ok=True)
+        json_path = destination / "comparison.json"
+        json_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        json_path.with_suffix(".md").write_text(_markdown_report(report), encoding="utf-8")
+        return json_path
+    finally:
+        if candidate_detector is not None:
+            candidate_detector.close()
+        reference_detector.close()

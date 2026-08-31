@@ -15,6 +15,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "rknn_path": "artifacts/rk3588/yoloe-26s-rk3588-fp16.rknn",
         "device": "auto",
         "imgsz": 960,
+        "input_shape": [544, 960],
         "half": True,
         "pad_color": [114, 114, 114],
         "core_mask": "AUTO",

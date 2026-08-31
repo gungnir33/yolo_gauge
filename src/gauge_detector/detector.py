@@ -31,6 +31,7 @@ class GaugeDetector:
             raise ValueError("Text Prompt Ensemble requires detection.agnostic_nms=true.")
         runtime_model = self.config["model"]["name"]
         self.model = create_backend(self.config)
+        self._closed = False
         LOGGER.info(
             "Detector mode: YOLOE Text Prompt | Model: %s | Unified class: %s | Text prompts: %d | "
             "Confidence: %.2f | IoU: %.2f | Class-agnostic NMS: enabled",
@@ -41,6 +42,19 @@ class GaugeDetector:
             float(detection_cfg["iou"]),
         )
         self.model.warmup(warmup_runs)
+
+    def close(self) -> None:
+        if not self._closed:
+            close = getattr(self.model, "close", None)
+            if callable(close):
+                close()
+            self._closed = True
+
+    def __enter__(self) -> "GaugeDetector":
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.close()
 
     def detect(self, image_path: str) -> DetectionResult:
         image = read_image(image_path)

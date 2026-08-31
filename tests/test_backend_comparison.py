@@ -41,8 +41,12 @@ def test_compare_directory_writes_json_and_markdown_summary(monkeypatch, tmp_pat
     (image_dir / "b.jpg").write_bytes(b"b")
 
     class FakeDetector:
+        instances = []
+
         def __init__(self, config_path, **kwargs):
             self.reference = config_path == "reference.yaml"
+            self.closed = False
+            self.instances.append(self)
 
         def detect_array(self, image):
             marker = int(image[0, 0, 0])
@@ -53,6 +57,9 @@ def test_compare_directory_writes_json_and_markdown_summary(monkeypatch, tmp_pat
                 [Detection(0, "instrument", 0.9, 0, 0, 10, 10)],
                 10 if self.reference else 5,
             )
+
+        def close(self):
+            self.closed = True
 
     monkeypatch.setattr("gauge_detector.compare.GaugeDetector", FakeDetector)
     monkeypatch.setattr(
@@ -70,6 +77,7 @@ def test_compare_directory_writes_json_and_markdown_summary(monkeypatch, tmp_pat
     assert report["summary"]["missed_images"] == ["b.jpg"]
     assert report["summary"]["candidate_mean_inference_ms"] == pytest.approx(5.0)
     assert report_path.with_suffix(".md").is_file()
+    assert all(detector.closed for detector in FakeDetector.instances)
 
 
 def test_cli_parser_accepts_compare_backends_command():

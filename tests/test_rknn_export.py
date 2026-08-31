@@ -1,9 +1,22 @@
 import json
+import hashlib
 from pathlib import Path
 
 import pytest
 
 from gauge_detector.rknn_export import RKNNBuildConfig, convert_onnx_to_rknn, write_calibration_list
+
+
+def _write_source_metadata(path, *, raw_head="one2one", sha256=None):
+    payload = {
+        "end2end_output": "raw",
+        "raw_head": raw_head,
+        "raw_box_format": "xywh",
+        "input_shape": [544, 960],
+        "prompts": ["a", "b", "c", "d", "e"],
+        "onnx_sha256": sha256 or hashlib.sha256(path.read_bytes()).hexdigest(),
+    }
+    path.with_suffix(".json").write_text(json.dumps(payload), encoding="utf-8")
 
 
 def test_int8_requires_calibration_dataset(tmp_path):
@@ -27,7 +40,11 @@ def test_calibration_list_contains_absolute_sorted_images(tmp_path):
 def test_fp16_conversion_configures_normalization_and_writes_metadata(monkeypatch, tmp_path):
     onnx_path = tmp_path / "raw.onnx"
     onnx_path.write_bytes(b"raw")
-    monkeypatch.setattr("gauge_detector.rknn_export._onnx_output_shapes", lambda _: [[1, 9, 10710]])
+    _write_source_metadata(onnx_path)
+    monkeypatch.setattr(
+        "gauge_detector.rknn_export._onnx_contract", lambda _: ([[1, 3, 544, 960]], [[1, 9, 10710]])
+    )
+    monkeypatch.setattr("gauge_detector.rknn_export._toolkit_version", lambda: "2.3.2")
 
     class FakeRKNN:
         def config(self, **kwargs):
@@ -67,15 +84,92 @@ def test_fp16_conversion_configures_normalization_and_writes_metadata(monkeypatc
     metadata = json.loads(output.with_suffix(".json").read_text(encoding="utf-8"))
     assert metadata["quantize"] == 16
     assert metadata["source_output_shapes"] == [[1, 9, 10710]]
+    assert metadata["toolkit_version"] == "2.3.2"
+    assert metadata["input_shape"] == [544, 960]
+    assert metadata["input_layout"] == "NHWC"
+    assert metadata["input_dtype"] == "uint8"
+    assert metadata["raw_head"] == "one2one"
+    assert metadata["prompts"] == ["a", "b", "c", "d", "e"]
 
 
 def test_conversion_rejects_end2end_onnx(monkeypatch, tmp_path):
     onnx_path = tmp_path / "end2end.onnx"
     onnx_path.write_bytes(b"end2end")
-    monkeypatch.setattr("gauge_detector.rknn_export._onnx_output_shapes", lambda _: [[1, 300, 6]])
+    _write_source_metadata(onnx_path)
+    monkeypatch.setattr(
+        "gauge_detector.rknn_export._onnx_contract", lambda _: ([[1, 3, 544, 960]], [[1, 300, 6]])
+    )
 
     with pytest.raises(ValueError, match="end-to-end"):
         convert_onnx_to_rknn(onnx_path, tmp_path / "model.rknn", RKNNBuildConfig(), rknn_factory=lambda: object())
+
+
+def test_conversion_rejects_untrusted_or_one2many_source_metadata(monkeypatch, tmp_path):
+    onnx_path = tmp_path / "raw.onnx"
+    onnx_path.write_bytes(b"raw")
+    _write_source_metadata(onnx_path, raw_head="one2many")
+    monkeypatch.setattr(
+        "gauge_detector.rknn_export._onnx_contract", lambda _: ([[1, 3, 544, 960]], [[1, 9, 10710]])
+    )
+
+    with pytest.raises(ValueError, match="one2one"):
+        convert_onnx_to_rknn(onnx_path, tmp_path / "model.rknn", RKNNBuildConfig(), rknn_factory=lambda: object())
+
+
+def test_conversion_rejects_dynamic_or_multiple_tensor_contract(monkeypatch, tmp_path):
+    onnx_path = tmp_path / "raw.onnx"
+    onnx_path.write_bytes(b"raw")
+    _write_source_metadata(onnx_path)
+    monkeypatch.setattr(
+        "gauge_detector.rknn_export._onnx_contract",
+        lambda _: ([["batch", 3, 544, 960]], [[1, 9, 10710], [1, 1, 1]]),
+    )
+
+    with pytest.raises(ValueError, match="static input"):
+        convert_onnx_to_rknn(onnx_path, tmp_path / "model.rknn", RKNNBuildConfig(), rknn_factory=lambda: object())
+
+
+@pytest.mark.parametrize("bad_operation", ["config", "load_onnx", "build", "export_rknn"])
+@pytest.mark.parametrize("bad_code", [None, -1])
+def test_conversion_strictly_checks_every_return_code_and_releases(
+    monkeypatch, tmp_path, bad_operation, bad_code
+):
+    onnx_path = tmp_path / "raw.onnx"
+    onnx_path.write_bytes(b"raw")
+    _write_source_metadata(onnx_path)
+    monkeypatch.setattr(
+        "gauge_detector.rknn_export._onnx_contract", lambda _: ([[1, 3, 544, 960]], [[1, 9, 10710]])
+    )
+
+    class BadRuntime:
+        released = False
+
+        def _result(self, operation):
+            return bad_code if operation == bad_operation else 0
+
+        def config(self, **kwargs):
+            return self._result("config")
+
+        def load_onnx(self, **kwargs):
+            return self._result("load_onnx")
+
+        def build(self, **kwargs):
+            return self._result("build")
+
+        def export_rknn(self, path):
+            Path(path).write_bytes(b"rknn")
+            return self._result("export_rknn")
+
+        def release(self):
+            self.released = True
+
+    runtime = BadRuntime()
+    with pytest.raises(RuntimeError, match=bad_operation):
+        convert_onnx_to_rknn(
+            onnx_path, tmp_path / "model.rknn", RKNNBuildConfig(), rknn_factory=lambda: runtime
+        )
+
+    assert runtime.released is True
 
 
 def test_setup_script_pins_toolkit_version():

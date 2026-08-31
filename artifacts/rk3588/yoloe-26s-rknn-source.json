@@ -11,6 +11,7 @@
     544,
     960
   ],
+  "onnx_sha256": "54c07ce97a1ed5bfb2b1b5920ede0d2ab9568dbb703d6f9dc42d09ea4853a6e2",
   "opset": 19,
   "prompts": [
     "analog gauge",

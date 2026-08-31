@@ -27,6 +27,7 @@ def test_default_config_keeps_pytorch_backend_and_portable_padding():
     config = load_config()
 
     assert config["model"]["backend"] == "pytorch"
+    assert config["model"]["input_shape"] == [544, 960]
     assert config["model"]["pad_color"] == [114, 114, 114]
     assert config["model"]["core_mask"] == "AUTO"
 
@@ -132,6 +133,7 @@ def test_gauge_detector_uses_backend_candidates_and_keeps_business_postprocess(m
 
     class FakeBackend:
         imgsz = 100
+        close_calls = 0
 
         def warmup(self, runs):
             self.warmup_runs = runs
@@ -144,6 +146,9 @@ def test_gauge_detector_uses_backend_candidates_and_keeps_business_postprocess(m
                 ],
                 12.5,
             )
+
+        def close(self):
+            self.close_calls += 1
 
     backend = FakeBackend()
     monkeypatch.setattr("gauge_detector.detector.create_backend", lambda config: backend)
@@ -158,11 +163,14 @@ def test_gauge_detector_uses_backend_candidates_and_keeps_business_postprocess(m
 
     detector = GaugeDetector(str(config), warmup_runs=2)
     result = detector.detect_array(np.zeros((100, 100, 3), dtype=np.uint8))
+    detector.close()
+    detector.close()
 
     assert detector.model is backend
     assert backend.warmup_runs == 2
     assert result.inference_ms == 12.5
     assert result.detections[0].xyxy == [0, 0, 80, 80]
+    assert backend.close_calls == 1
 
 
 class FakeRKNNLite:

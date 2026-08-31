@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import re
 import shutil
 from pathlib import Path
@@ -156,6 +157,7 @@ def _export_static_onnx(
         "opset": 19,
         "agnostic_nms": True,
         "end2end_output": output_contract,
+        "onnx_sha256": hashlib.sha256(destination.read_bytes()).hexdigest(),
     }
     if output_contract == "raw":
         export_metadata["raw_head"] = "one2one"

@@ -1,6 +1,12 @@
 {
   "batch": 1,
   "dataset": null,
+  "input_dtype": "uint8",
+  "input_layout": "NHWC",
+  "input_shape": [
+    544,
+    960
+  ],
   "normalization": {
     "mean_values": [
       [
@@ -17,10 +23,20 @@
       ]
     ]
   },
+  "prompts": [
+    "analog gauge",
+    "dial gauge",
+    "pressure gauge",
+    "pressure meter",
+    "industrial gauge"
+  ],
   "quantize": 16,
+  "raw_box_format": "xywh",
+  "raw_head": "one2one",
   "schema_version": 1,
+  "source_metadata_sha256": "13ba18334931452c2807952fe923917f487516f5d5c98602f9e0578439005d2f",
   "source_onnx": "yoloe-26s-rknn-source.onnx",
-  "source_onnx_sha256": "ea71a77e195e7746654e33986e5614c09121c1000fe26827300d766d4c3e0dae",
+  "source_onnx_sha256": "54c07ce97a1ed5bfb2b1b5920ede0d2ab9568dbb703d6f9dc42d09ea4853a6e2",
   "source_output_shapes": [
     [
       1,
@@ -28,5 +44,6 @@
       10710
     ]
   ],
-  "target": "rk3588"
+  "target": "rk3588",
+  "toolkit_version": "2.3.2"
 }

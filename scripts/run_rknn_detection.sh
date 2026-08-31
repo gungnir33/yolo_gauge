@@ -60,6 +60,12 @@ if [[ -n "${MODEL}" && ! -f "${MODEL}" ]]; then
   exit 2
 fi
 
+INPUT="$(cd "$(dirname "${INPUT}")" && pwd -P)/$(basename "${INPUT}")"
+CONFIG="$(cd "$(dirname "${CONFIG}")" && pwd -P)/$(basename "${CONFIG}")"
+if [[ -n "${MODEL}" ]]; then
+  MODEL="$(cd "$(dirname "${MODEL}")" && pwd -P)/$(basename "${MODEL}")"
+fi
+
 TEMP_CONFIG="$(mktemp "${TMPDIR:-/tmp}/gauge-rknn.XXXXXX.yaml")"
 trap 'rm -f -- "${TEMP_CONFIG}"' EXIT
 "${PYTHON_BIN}" -c '
@@ -75,6 +81,7 @@ with open(destination, "w", encoding="utf-8") as handle:
     yaml.safe_dump(config, handle, allow_unicode=True, sort_keys=False)
 ' "${CONFIG}" "${TEMP_CONFIG}" "${MODEL}" "${CORE_MASK}"
 
+cd "${PROJECT_DIR}"
 export PYTHONPATH="${PROJECT_DIR}/src${PYTHONPATH:+:${PYTHONPATH}}"
 if [[ -d "${INPUT}" ]]; then
   ARGS=(detect-dir --input "${INPUT}" --output "${OUTPUT}" --config "${TEMP_CONFIG}")

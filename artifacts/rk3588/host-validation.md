@@ -21,15 +21,15 @@
 本次本地生成物 SHA256：
 
 ```text
-c67b44f253b2827d3dcc32adbfdbfe6d3d528658271a8b865e5aa78fbe76f73e  yoloe-26s.onnx
-ea71a77e195e7746654e33986e5614c09121c1000fe26827300d766d4c3e0dae  yoloe-26s-rknn-source.onnx
-dfc18421c089b963e9f251547f366af24c43f129826c66803e91738f39d358a4  yoloe-26s-rk3588-fp16.rknn
+7371c9c6906d523c44c6169e227ff7865e186949845ab557f3ba2a456af0dafa  yoloe-26s.onnx
+54c07ce97a1ed5bfb2b1b5920ede0d2ab9568dbb703d6f9dc42d09ea4853a6e2  yoloe-26s-rknn-source.onnx
+bfd6f0cb2a7af95ce4a26a164310211985d9969ee0ab70208953bce0a18749fc  yoloe-26s-rk3588-fp16.rknn
 0307286ba9d32d3a41e94e66f778784de3cbd84d7a073ef1e2c10829b5f85168  gauge-prompts.npz
 ```
 
 ## 测试结果
 
-- 单元测试：80 passed，1 skipped（硬件集成默认跳过）。
+- 单元测试：91 passed，1 skipped（硬件集成默认跳过）。
 - 真实模型加载集成测试：1 passed。
 - 默认 PyTorch 11 图：11/11 检出，每图一个框，所有框相对冻结基线 IoU=1.0000。
 - 主机 end-to-end ONNX 11 图：11/11 检出，无重复框，所有最终框相对冻结基线 IoU=1.0000。
