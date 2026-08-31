@@ -11,6 +11,7 @@ from .crop import save_crops
 from .detector import GaugeDetector
 from .export import export_model
 from .io_utils import read_image, result_to_dict, save_json
+from .prompt_profile import prepare_prompt_profile
 from .visualization import draw_detections
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
@@ -70,6 +71,10 @@ def build_parser() -> argparse.ArgumentParser:
     export = subparsers.add_parser("export", help="Export a text-prompt ONNX or TensorRT model")
     export.add_argument("--format", choices=["engine", "onnx"], required=True)
     _add_common(export)
+
+    prepare_profile = subparsers.add_parser("prepare-profile", help="Save static YOLOE text prompt embeddings")
+    prepare_profile.add_argument("--output", required=True, help="Output .npz prompt profile path")
+    _add_common(prepare_profile)
     return parser
 
 
@@ -128,5 +133,8 @@ def main(argv: list[str] | None = None) -> None:
         elif args.command == "export":
             output = export_model(args.config, args.format)
             print(f"Exported: {output}")
+        elif args.command == "prepare-profile":
+            profile, metadata = prepare_prompt_profile(args.config, args.output)
+            print(f"Prompt profile: {profile}\nMetadata: {metadata}")
     except (FileNotFoundError, ValueError, OSError, RuntimeError) as exc:
         parser.exit(2, f"Error: {exc}\n")

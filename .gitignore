@@ -13,4 +13,5 @@ __pycache__/
 outputs/*
 !outputs/.gitkeep
 profiles/*.npz
+artifacts/**/*.npz
 artifacts/*.csv

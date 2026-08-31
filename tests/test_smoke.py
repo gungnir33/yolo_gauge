@@ -12,6 +12,12 @@ def test_cli_parser_loads():
     args = parser.parse_args(["detect", "--image", "image.jpg"])
     assert not hasattr(args, "profile")
 
+    profile_args = parser.parse_args(
+        ["prepare-profile", "--config", "configs/default.yaml", "--output", "artifacts/gauge-prompts.npz"]
+    )
+    assert profile_args.command == "prepare-profile"
+    assert profile_args.output == "artifacts/gauge-prompts.npz"
+
 
 def test_prompt_free_checkpoint_is_rejected():
     from gauge_detector.model import YOLOEModel
