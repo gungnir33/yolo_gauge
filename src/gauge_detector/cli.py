@@ -7,6 +7,7 @@ from pathlib import Path
 import cv2
 
 from .benchmark import evaluate, recommend, save_benchmark_csv
+from .compare import compare_directory
 from .crop import save_crops
 from .detector import GaugeDetector
 from .export import export_detection_onnx, export_model
@@ -80,6 +81,14 @@ def build_parser() -> argparse.ArgumentParser:
     export_onnx.add_argument("--profile", required=True, help="Static .npz prompt profile path")
     export_onnx.add_argument("--output", required=True, help="Output directory")
     _add_common(export_onnx)
+
+    compare = subparsers.add_parser("compare-backends", help="Compare two detector backends on an image directory")
+    compare.add_argument("--reference", required=True, help="Reference backend configuration")
+    compare.add_argument("--candidate", required=True, help="Candidate backend configuration")
+    compare.add_argument("--images", required=True, help="Image directory")
+    compare.add_argument("--output", required=True, help="Report output directory")
+    compare.add_argument("--iou-threshold", type=float, default=0.8)
+    compare.add_argument("--verbose", action="store_true")
     return parser
 
 
@@ -144,5 +153,14 @@ def main(argv: list[str] | None = None) -> None:
         elif args.command == "export-onnx":
             output = export_detection_onnx(args.config, args.profile, args.output)
             print(f"Detection-only ONNX: {output}")
+        elif args.command == "compare-backends":
+            output = compare_directory(
+                args.reference,
+                args.candidate,
+                args.images,
+                args.output,
+                args.iou_threshold,
+            )
+            print(f"Backend comparison: {output}")
     except (FileNotFoundError, ValueError, OSError, RuntimeError) as exc:
         parser.exit(2, f"Error: {exc}\n")
