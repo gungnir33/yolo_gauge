@@ -1,0 +1,7 @@
+models: [yoloe-26s-seg.pt, yoloe-26m-seg.pt]
+image_sizes: [640, 960, 1280]
+confidences: [0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
+iou_threshold: 0.5
+warmup_runs: 3
+target_recall: 0.95
+

@@ -1,0 +1,39 @@
+model:
+  name: yoloe-26s-seg.pt
+  device: auto
+  imgsz: 960
+  half: true
+text_prompt:
+  # 当前场景为模拟/指针仪表；避免宽泛 Prompt 将铭牌、面板误识别为仪表。
+  prompts:
+    - analog gauge
+    - dial gauge
+    - pressure gauge
+    - pressure meter
+    - industrial gauge
+  unified_class_name: instrument
+detection:
+  conf: 0.15
+  iou: 0.50
+  agnostic_nms: true
+  max_det: 20
+postprocess:
+  # 当前业务约束：每张图片最多只有一个目标仪表。
+  single_target:
+    enabled: true
+    containment_threshold: 0.90
+  geometry_filter:
+    enabled: false
+    min_area_ratio: 0.0003
+    max_area_ratio: 0.5
+    min_aspect_ratio: 0.45
+    max_aspect_ratio: 2.2
+visualization:
+  box_color: {b: 0, g: 255, r: 0}
+  thickness: 3
+  draw_label: false
+  draw_confidence: false
+output:
+  save_json: true
+  save_annotated_image: true
+  save_crops: true

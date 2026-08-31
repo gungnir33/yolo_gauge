@@ -1,0 +1,125 @@
+{
+  "image": "data/reference/stage_a/reference_mosaic.jpg",
+  "objects": [
+    {
+      "class_id": 0,
+      "class_name": "gauge",
+      "bbox_xyxy": [
+        0,
+        16,
+        384,
+        368
+      ]
+    },
+    {
+      "class_id": 0,
+      "class_name": "gauge",
+      "bbox_xyxy": [
+        415,
+        0,
+        737,
+        384
+      ]
+    },
+    {
+      "class_id": 0,
+      "class_name": "gauge",
+      "bbox_xyxy": [
+        816,
+        0,
+        1103,
+        384
+      ]
+    },
+    {
+      "class_id": 0,
+      "class_name": "gauge",
+      "bbox_xyxy": [
+        1152,
+        13,
+        1536,
+        371
+      ]
+    },
+    {
+      "class_id": 0,
+      "class_name": "gauge",
+      "bbox_xyxy": [
+        0,
+        392,
+        384,
+        759
+      ]
+    },
+    {
+      "class_id": 0,
+      "class_name": "gauge",
+      "bbox_xyxy": [
+        384,
+        480,
+        768,
+        672
+      ]
+    },
+    {
+      "class_id": 0,
+      "class_name": "gauge",
+      "bbox_xyxy": [
+        769,
+        384,
+        1151,
+        768
+      ]
+    },
+    {
+      "class_id": 0,
+      "class_name": "gauge",
+      "bbox_xyxy": [
+        1160,
+        384,
+        1528,
+        768
+      ]
+    },
+    {
+      "class_id": 0,
+      "class_name": "gauge",
+      "bbox_xyxy": [
+        23,
+        768,
+        361,
+        1152
+      ]
+    },
+    {
+      "class_id": 0,
+      "class_name": "gauge",
+      "bbox_xyxy": [
+        405,
+        768,
+        746,
+        1152
+      ]
+    },
+    {
+      "class_id": 0,
+      "class_name": "gauge",
+      "bbox_xyxy": [
+        768,
+        786,
+        1152,
+        1134
+      ]
+    },
+    {
+      "class_id": 0,
+      "class_name": "gauge",
+      "bbox_xyxy": [
+        1152,
+        782,
+        1536,
+        1137
+      ]
+    }
+  ]
+}

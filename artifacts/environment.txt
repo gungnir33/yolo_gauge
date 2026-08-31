@@ -1,0 +1,9 @@
+python: 3.13.5
+torch: 2.13.0+cpu
+ultralytics: 8.4.121
+opencv: 5.0.0
+numpy: 2.5.2
+pyyaml: 6.0.3
+cuda available: False
+device: cpu
+

@@ -1,0 +1,137 @@
+{
+  "selection_version": 1,
+  "exemplars": [
+    {
+      "kind": "round_pressure_orange",
+      "source": "/home/mcl/下载/图片/新建文件夹 (5)/#1主变220kV侧2601开关B相SF6表.jpg",
+      "bbox_xyxy": [
+        590,
+        45,
+        1440,
+        825
+      ],
+      "crop": "data/reference/stage_a/raw/00_round_pressure_orange.jpg"
+    },
+    {
+      "kind": "oil_temperature",
+      "source": "/home/mcl/下载/图片/新建文件夹 (5)/#1主变下层油温表.jpg",
+      "bbox_xyxy": [
+        850,
+        115,
+        1265,
+        610
+      ],
+      "crop": "data/reference/stage_a/raw/01_oil_temperature.jpg"
+    },
+    {
+      "kind": "tap_position",
+      "source": "/home/mcl/下载/图片/新建文件夹 (5)/#1主变有载调压档位表.jpg",
+      "bbox_xyxy": [
+        665,
+        195,
+        1320,
+        1070
+      ],
+      "crop": "data/reference/stage_a/raw/02_tap_position.jpg"
+    },
+    {
+      "kind": "rect_leakage",
+      "source": "/home/mcl/下载/图片/新建文件夹 (5)/#2主变10kV避雷器C相泄漏电流表.jpg",
+      "bbox_xyxy": [
+        165,
+        0,
+        1285,
+        1045
+      ],
+      "crop": "data/reference/stage_a/raw/03_rect_leakage.jpg"
+    },
+    {
+      "kind": "oil_level_window",
+      "source": "/home/mcl/下载/图片/新建文件夹 (5)/#2主变500kV侧压变B相油位窗.jpg",
+      "bbox_xyxy": [
+        790,
+        390,
+        1020,
+        610
+      ],
+      "crop": "data/reference/stage_a/raw/04_oil_level_window.jpg"
+    },
+    {
+      "kind": "digital_single",
+      "source": "/home/mcl/下载/图片/新建文件夹 (5)/11#通信电源电流测量装置表.jpg",
+      "bbox_xyxy": [
+        255,
+        305,
+        1265,
+        810
+      ],
+      "crop": "data/reference/stage_a/raw/05_digital_single.jpg"
+    },
+    {
+      "kind": "round_leakage",
+      "source": "/home/mcl/下载/图片/新建文件夹 (5)/110kVII段母线避雷器A相泄漏电流表.jpg",
+      "bbox_xyxy": [
+        390,
+        55,
+        1400,
+        1070
+      ],
+      "crop": "data/reference/stage_a/raw/06_round_leakage.jpg"
+    },
+    {
+      "kind": "switch_indicator",
+      "source": "/home/mcl/下载/图片/新建文件夹 (5)/220kV待用2YQⅢ间隔接地闸刀分合指示本体.jpg",
+      "bbox_xyxy": [
+        775,
+        220,
+        1335,
+        805
+      ],
+      "crop": "data/reference/stage_a/raw/07_switch_indicator.jpg"
+    },
+    {
+      "kind": "panel_digital",
+      "source": "/home/mcl/下载/图片/新建文件夹 (5)/3AA9-1制一码垛动力馈线柜分合故障开关状态.jpg",
+      "bbox_xyxy": [
+        1385,
+        315,
+        1640,
+        605
+      ],
+      "crop": "data/reference/stage_a/raw/08_panel_digital.jpg"
+    },
+    {
+      "kind": "hood_pressure",
+      "source": "/home/mcl/下载/图片/新建文件夹 (5)/山旧4442开关B相SF6压力表.jpg",
+      "bbox_xyxy": [
+        590,
+        55,
+        1340,
+        900
+      ],
+      "crop": "data/reference/stage_a/raw/09_hood_pressure.jpg"
+    },
+    {
+      "kind": "round_leakage_red",
+      "source": "/home/mcl/下载/图片/新建文件夹 (5)/110kVII段母线避雷器C相泄漏电流表.jpg",
+      "bbox_xyxy": [
+        335,
+        95,
+        1410,
+        1070
+      ],
+      "crop": "data/reference/stage_a/raw/10_round_leakage_red.jpg"
+    },
+    {
+      "kind": "round_leakage_front",
+      "source": "/home/mcl/下载/图片/新建文件夹 (5)/东桥1423避雷器A相泄漏电流表.jpg",
+      "bbox_xyxy": [
+        445,
+        135,
+        1455,
+        1070
+      ],
+      "crop": "data/reference/stage_a/raw/11_round_leakage_front.jpg"
+    }
+  ]
+}

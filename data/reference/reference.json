@@ -1,0 +1,11 @@
+{
+  "image": "data/reference/reference.jpg",
+  "objects": [
+    {
+      "class_id": 0,
+      "class_name": "gauge",
+      "bbox_xyxy": [570, 160, 800, 370]
+    }
+  ]
+}
+

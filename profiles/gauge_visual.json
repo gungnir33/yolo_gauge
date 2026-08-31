@@ -1,0 +1,17 @@
+{
+  "profile_version": 1,
+  "class_name": "gauge",
+  "class_id": 0,
+  "model_name": "yoloe-26s-seg.pt",
+  "reference_image": "data/reference/reference.jpg",
+  "reference_boxes": [
+    [
+      570,
+      160,
+      800,
+      370
+    ]
+  ],
+  "embedding_file": "profiles/gauge_visual.npz",
+  "imgsz": 960
+}

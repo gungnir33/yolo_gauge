@@ -1,0 +1,16 @@
+.venv/
+.venv-rknn/
+.worktrees/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.pt
+*.part
+*.engine
+*.onnx
+*.rknn
+*.ts
+outputs/*
+!outputs/.gitkeep
+profiles/*.npz
+artifacts/*.csv
