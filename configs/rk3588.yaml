@@ -1,0 +1,42 @@
+model:
+  backend: rknn
+  name: yoloe-26s-seg.pt
+  rknn_path: artifacts/rk3588/yoloe-26s-rk3588-fp16.rknn
+  imgsz: 960
+  input_shape: [544, 960]
+  device: npu
+  half: true
+  pad_color: [114, 114, 114]
+  core_mask: AUTO
+text_prompt:
+  prompts:
+    - analog gauge
+    - dial gauge
+    - pressure gauge
+    - pressure meter
+    - industrial gauge
+  unified_class_name: instrument
+detection:
+  conf: 0.15
+  iou: 0.50
+  agnostic_nms: true
+  max_det: 20
+postprocess:
+  single_target:
+    enabled: true
+    containment_threshold: 0.90
+  geometry_filter:
+    enabled: false
+    min_area_ratio: 0.0003
+    max_area_ratio: 0.5
+    min_aspect_ratio: 0.45
+    max_aspect_ratio: 2.2
+visualization:
+  box_color: {b: 0, g: 255, r: 0}
+  thickness: 3
+  draw_label: false
+  draw_confidence: false
+output:
+  save_json: true
+  save_annotated_image: true
+  save_crops: true

@@ -433,7 +433,7 @@ Run: `PYTHONPATH=src .venv/bin/python -m pytest tests/test_rknn_export.py -v`
 
 - [ ] **Step 3: Implement optional RKNN dependency boundary**
 
-Import `rknn.api.RKNN` only inside `convert_onnx_to_rknn`. The source ONNX must be separately exported with `end2end=False`; reject `1×N×6` end-to-end models before conversion. Configure `mean_values=[[0,0,0]]`, `std_values=[[255,255,255]]`, `target_platform="rk3588"`; call `load_onnx`, `build(do_quantization=False, rknn_batch_size=1)` for FP16, check every return code, export the model, release in `finally`, and save build metadata JSON.
+Import `rknn.api.RKNN` only inside `convert_onnx_to_rknn`. The source ONNX must be separately exported from the one-to-one head with TopK disabled; reject `1×N×6` end-to-end models before conversion and do not fall back to the one-to-many head. Configure `mean_values=[[0,0,0]]`, `std_values=[[255,255,255]]`, `target_platform="rk3588"`; call `load_onnx`, `build(do_quantization=False, rknn_batch_size=1)` for FP16, check every return code, export the model, release in `finally`, and save build metadata JSON.
 
 - [ ] **Step 4: Run tests in the existing environment**
 
@@ -453,7 +453,7 @@ Run:
 
 ```bash
 PYTHONPATH=src .venv-rknn/bin/python -m gauge_detector convert-rknn \
-  --onnx artifacts/rk3588/yoloe-26s.onnx \
+  --onnx artifacts/rk3588/yoloe-26s-rknn-source.onnx \
   --output artifacts/rk3588/yoloe-26s-rk3588-fp16.rknn \
   --target rk3588 \
   --quantize 16

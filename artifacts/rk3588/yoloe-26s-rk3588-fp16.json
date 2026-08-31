@@ -1,0 +1,32 @@
+{
+  "batch": 1,
+  "dataset": null,
+  "normalization": {
+    "mean_values": [
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "std_values": [
+      [
+        255,
+        255,
+        255
+      ]
+    ]
+  },
+  "quantize": 16,
+  "schema_version": 1,
+  "source_onnx": "yoloe-26s-rknn-source.onnx",
+  "source_onnx_sha256": "ea71a77e195e7746654e33986e5614c09121c1000fe26827300d766d4c3e0dae",
+  "source_output_shapes": [
+    [
+      1,
+      9,
+      10710
+    ]
+  ],
+  "target": "rk3588"
+}

@@ -48,12 +48,59 @@ def build_detection_only_model(
     return model
 
 
+def use_one2one_raw_output(model: Any) -> None:
+    """Expose the YOLO26 one-to-one head before export while leaving TopK to Python."""
+    try:
+        head = model.model.model[-1]
+    except (AttributeError, IndexError, TypeError) as exc:
+        raise RuntimeError("Unable to locate the YOLO26 detection head for RKNN export.") from exc
+    required = ("cv2", "cv3", "one2one_cv2", "one2one_cv3", "end2end")
+    if any(not hasattr(head, name) for name in required):
+        raise RuntimeError("RKNN source export requires a YOLO26 one-to-one detection head.")
+    head.cv2 = head.one2one_cv2
+    head.cv3 = head.one2one_cv3
+    if hasattr(head, "cv4") and hasattr(head, "one2one_cv4"):
+        head.cv4 = head.one2one_cv4
+    head.end2end = False
+
+
 def export_detection_onnx(
     config_path: str | Path,
     profile_path: str | Path,
     output_dir: str | Path,
     *,
     model_factory: Callable[..., Any] | None = None,
+) -> Path:
+    return _export_static_onnx(config_path, profile_path, output_dir, model_factory=model_factory)
+
+
+def export_rknn_source_onnx(
+    config_path: str | Path,
+    profile_path: str | Path,
+    output_dir: str | Path,
+    *,
+    model_factory: Callable[..., Any] | None = None,
+) -> Path:
+    return _export_static_onnx(
+        config_path,
+        profile_path,
+        output_dir,
+        model_factory=model_factory,
+        end2end=False,
+        destination_suffix="-rknn-source",
+        output_contract="raw",
+    )
+
+
+def _export_static_onnx(
+    config_path: str | Path,
+    profile_path: str | Path,
+    output_dir: str | Path,
+    *,
+    model_factory: Callable[..., Any] | None = None,
+    end2end: bool | None = None,
+    destination_suffix: str = "",
+    output_contract: str = "1xNx6",
 ) -> Path:
     config = load_config(config_path)
     model_config = config["model"]
@@ -72,22 +119,25 @@ def export_detection_onnx(
         imgsz,
         model_factory=model_factory,
     )
-    exported_path = Path(
-        model.export(
-            format="onnx",
-            imgsz=export_imgsz,
-            batch=1,
-            dynamic=False,
-            opset=19,
-            simplify=False,
-            nms=False,
-            agnostic_nms=True,
-            device="cpu",
-        )
-    )
+    if end2end is False and (model_factory is None or hasattr(model, "model")):
+        use_one2one_raw_output(model)
+    export_options: dict[str, Any] = {
+        "format": "onnx",
+        "imgsz": export_imgsz,
+        "batch": 1,
+        "dynamic": False,
+        "opset": 19,
+        "simplify": False,
+        "nms": False,
+        "agnostic_nms": True,
+        "device": "cpu",
+    }
+    if end2end is not None:
+        export_options["end2end"] = end2end
+    exported_path = Path(model.export(**export_options))
     destination_dir = Path(output_dir)
     destination_dir.mkdir(parents=True, exist_ok=True)
-    destination = destination_dir / f"{Path(architecture).stem}.onnx"
+    destination = destination_dir / f"{Path(architecture).stem}{destination_suffix}.onnx"
     if exported_path.resolve() != destination.resolve():
         if destination.exists():
             destination.unlink()
@@ -105,8 +155,11 @@ def export_detection_onnx(
         "dynamic": False,
         "opset": 19,
         "agnostic_nms": True,
-        "end2end_output": "1xNx6",
+        "end2end_output": output_contract,
     }
+    if output_contract == "raw":
+        export_metadata["raw_head"] = "one2one"
+        export_metadata["raw_box_format"] = "xywh"
     destination.with_suffix(".json").write_text(
         json.dumps(export_metadata, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",

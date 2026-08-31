@@ -1,0 +1,25 @@
+{
+  "agnostic_nms": true,
+  "architecture": "yoloe-26s.yaml",
+  "batch": 1,
+  "checkpoint_name": "yoloe-26s-seg.pt",
+  "checkpoint_sha256": "48f24206bc8680d60cbbfa296b0140da849669b9515058b72f5a945142df0654",
+  "dynamic": false,
+  "end2end_output": "raw",
+  "imgsz": 960,
+  "input_shape": [
+    544,
+    960
+  ],
+  "opset": 19,
+  "prompts": [
+    "analog gauge",
+    "dial gauge",
+    "pressure gauge",
+    "pressure meter",
+    "industrial gauge"
+  ],
+  "raw_box_format": "xywh",
+  "raw_head": "one2one",
+  "schema_version": 1
+}
