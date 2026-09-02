@@ -1,0 +1,13 @@
+{
+  "checkpoint_name": "yoloe-26s-seg.pt",
+  "checkpoint_sha256": "48f24206bc8680d60cbbfa296b0140da849669b9515058b72f5a945142df0654",
+  "imgsz": 960,
+  "prompts": [
+    "analog gauge",
+    "dial gauge",
+    "pressure gauge",
+    "pressure meter",
+    "industrial gauge"
+  ],
+  "schema_version": 1
+}

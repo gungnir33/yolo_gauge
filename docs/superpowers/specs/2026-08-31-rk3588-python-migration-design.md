@@ -10,7 +10,8 @@
 
 - 模型：`yoloe-26s-seg.pt`
 - Ultralytics：`8.4.121`
-- 输入尺寸：`960`
+- PyTorch 推理尺寸：`imgsz=960`，使用 Ultralytics 原生最小矩形预处理
+- 部署静态输入：`1×3×544×960`，匹配当前固定 1920×1080 图像的原生预处理结果
 - Text Prompt：`analog gauge`、`dial gauge`、`pressure gauge`、`pressure meter`、`industrial gauge`
 - 检测阈值：`conf=0.15`、`iou=0.50`、`agnostic_nms=true`
 - 后处理：每张图最多保留一个目标；最高置信度框出现嵌套时保留所在嵌套组的最大框
@@ -44,9 +45,10 @@
 3. 保存与 checkpoint 和 Prompt 列表绑定的 NPZ profile，同时保存 JSON 元数据和 SHA256。
 4. 从匹配的 `yoloe-26s.yaml` 构建纯检测模型并加载分割 checkpoint 中兼容的权重。
 5. 加载同一个 Prompt profile，导出静态、batch=1、固定尺寸的 ONNX。
-6. 验证导出模型不包含 mask 业务输出，并记录实际输入、输出张量名称、Shape 和 dtype。
+6. 导出两份静态图：主机 ONNX 保留 end-to-end `1×300×6` 输出；RKNN 源图复用 YOLO26 one-to-one 检测头但关闭不受支持的 TopK，输出解码后的框通道和类别分数。不能直接切换到 one-to-many 头，否则会改变嵌套候选框。
+7. 验证两份模型均不包含 mask 业务输出，并记录实际输入、输出张量名称、Shape 和 dtype。
 
-提示词在导出模型中静态固化。修改提示词、模型权重或输入尺寸后必须重新导出 ONNX/RKNN，不支持在 RK3588 运行时调用 `set_classes()`。
+提示词在导出模型中静态固化。修改提示词、模型权重或部署输入 Shape 后必须重新导出 ONNX/RKNN，不支持在 RK3588 运行时调用 `set_classes()`。
 
 ### 运行时后端
 
@@ -65,7 +67,7 @@ class InferenceBackend:
 - 输入：非空 OpenCV BGR `uint8`，形状 `H×W×3`
 - 颜色：BGR 转 RGB，只转换一次
 - Resize：保持长宽比的 letterbox
-- 输入尺寸：静态方形，第一版为 960
+- 输入尺寸：静态矩形，第一版为高 544、宽 960；该 Shape 对应当前固定 1920×1080 图像在 `imgsz=960` 下按 stride=32 对齐的最小矩形
 - Batch：1
 - Padding 颜色、缩放比例、左右/上下 padding 必须显式记录
 - 归一化只能由应用或 RKNN 配置中的一方完成，不得重复
@@ -75,7 +77,7 @@ class InferenceBackend:
 
 ### 后处理契约
 
-不能预设 YOLOE-26 的导出张量与 YOLOv8 相同。导出后先检查实际 ONNX 输出，再实现对应适配器。后处理完成以下行为：
+不能预设 YOLOE-26 的导出张量与 YOLOv8 相同。主机 ONNX 已实测为 `1×300×6`，格式为 `[x1,y1,x2,y2,confidence,class_id]`。RKNN 使用 YOLO26 one-to-one 头的 `1×(4+类别数)×anchors` 原始输出：前 4 通道是已解码的 `xywh`，后续通道是类别分数，Python 后处理负责转为 `xyxy` 并执行类别无关 NMS。实测直接关闭 end-to-end 并使用默认 one-to-many 头会使 `detect-06` 的最终框 IoU 降至约 0.62，因此禁止该导出方式。后处理完成以下行为：
 
 1. 将多个 Prompt 类别统一映射为 `instrument`。
 2. 执行类别无关的候选过滤和必要的 NMS。
@@ -85,7 +87,7 @@ class InferenceBackend:
 
 ## 配置与命令行
 
-新增独立 `configs/rk3588.yaml`，默认仍保留 `configs/default.yaml`。配置至少包括：
+新增独立 `configs/rk3588.yaml`，默认仍保留 `configs/default.yaml`。`imgsz` 保留为 Prompt profile 和 PyTorch 配置，`input_shape` 单独描述部署模型的静态 `[height,width]`。配置至少包括：
 
 - `backend`: `pytorch`、`onnx` 或 `rknn`
 - 各后端模型路径
@@ -115,7 +117,7 @@ CLI 在现有 `detect`、`detect-dir` 入口中根据配置选择后端，不新
 
 ### 阶段 3：ONNX 后端
 
-- 用手工构造张量测试 letterbox、坐标恢复、输出适配和空检测。
+- 用手工构造张量分别测试 end-to-end ONNX 输出、RKNN 原始输出、letterbox、坐标恢复和空检测。
 - 用实际 ONNX Runtime 跑 11 张图片。
 - `detect-01/09/10` 必须检出；最终框与基线 IoU 不低于 0.80。
 - 11 张图片不能产生重复业务框。
@@ -124,12 +126,12 @@ CLI 在现有 `detect`、`detect-dir` 入口中根据配置选择后端，不新
 
 - 在没有安装 RKNN 的现有环境中，转换模块仍可导入，并给出明确的依赖错误。
 - 测试校准清单生成、配置解析、FP16/INT8 参数映射。
-- 先生成 960 FP16 RKNN；主机只验证模型生成、元数据和模拟器能力，不将模拟器结果冒充板端结果。
+- 先生成 544×960 FP16 RKNN；主机只验证模型生成、元数据和模拟器能力，不将模拟器结果冒充板端结果。
 - FP16 通过后才尝试 INT8；INT8 校准集必须包含关键图和负样本。
 
 ### 阶段 5：RKNNLite Python 后端
 
-- 使用依赖注入的假 Runtime 测试初始化一次、输入设置、输出读取、释放和错误传播。
+- 使用依赖注入的假 Runtime 测试初始化一次、输入设置、原始输出解码、输出读取、释放和错误传播。
 - RK3588 上再运行真实 RKNNLite 集成测试。
 - 第一轮只用 `AUTO` core mask；板端正确性通过后再比较单核、双核和三核。
 

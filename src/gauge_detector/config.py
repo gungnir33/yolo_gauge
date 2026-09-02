@@ -8,7 +8,18 @@ import yaml
 
 
 DEFAULT_CONFIG: dict[str, Any] = {
-    "model": {"name": "yoloe-26s-seg.pt", "device": "auto", "imgsz": 960, "half": True},
+    "model": {
+        "backend": "pytorch",
+        "name": "yoloe-26s-seg.pt",
+        "onnx_path": "artifacts/rk3588/yoloe-26s.onnx",
+        "rknn_path": "artifacts/rk3588/yoloe-26s-rk3588-fp16.rknn",
+        "device": "auto",
+        "imgsz": 960,
+        "input_shape": [544, 960],
+        "half": True,
+        "pad_color": [114, 114, 114],
+        "core_mask": "AUTO",
+    },
     "text_prompt": {"prompts": [], "unified_class_name": "instrument"},
     "detection": {"conf": 0.25, "iou": 0.50, "agnostic_nms": True, "max_det": 20},
     "postprocess": {

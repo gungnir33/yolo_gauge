@@ -1,0 +1,4 @@
+# RKNNLite 必须安装与板端 Python ABI、librknnrt 和 RKNPU 驱动兼容的厂商 wheel。
+numpy==1.24.4
+opencv-python-headless==4.8.1.78
+PyYAML>=6,<7

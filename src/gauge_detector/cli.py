@@ -7,10 +7,13 @@ from pathlib import Path
 import cv2
 
 from .benchmark import evaluate, recommend, save_benchmark_csv
+from .compare import compare_directory
 from .crop import save_crops
 from .detector import GaugeDetector
-from .export import export_model
+from .export import export_detection_onnx, export_model, export_rknn_source_onnx
 from .io_utils import read_image, result_to_dict, save_json
+from .prompt_profile import prepare_prompt_profile
+from .rknn_export import RKNNBuildConfig, convert_onnx_to_rknn
 from .visualization import draw_detections
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
@@ -70,6 +73,38 @@ def build_parser() -> argparse.ArgumentParser:
     export = subparsers.add_parser("export", help="Export a text-prompt ONNX or TensorRT model")
     export.add_argument("--format", choices=["engine", "onnx"], required=True)
     _add_common(export)
+
+    prepare_profile = subparsers.add_parser("prepare-profile", help="Save static YOLOE text prompt embeddings")
+    prepare_profile.add_argument("--output", required=True, help="Output .npz prompt profile path")
+    _add_common(prepare_profile)
+
+    export_onnx = subparsers.add_parser("export-onnx", help="Export static detection-only YOLOE ONNX")
+    export_onnx.add_argument("--profile", required=True, help="Static .npz prompt profile path")
+    export_onnx.add_argument("--output", required=True, help="Output directory")
+    _add_common(export_onnx)
+
+    export_rknn_onnx = subparsers.add_parser(
+        "export-rknn-onnx", help="Export static raw-output ONNX for RKNN conversion"
+    )
+    export_rknn_onnx.add_argument("--profile", required=True, help="Static .npz prompt profile path")
+    export_rknn_onnx.add_argument("--output", required=True, help="Output directory")
+    _add_common(export_rknn_onnx)
+
+    convert_rknn = subparsers.add_parser("convert-rknn", help="Convert a raw-output ONNX model to RKNN")
+    convert_rknn.add_argument("--onnx", required=True, help="Raw-output ONNX model")
+    convert_rknn.add_argument("--output", required=True, help="Output .rknn path")
+    convert_rknn.add_argument("--target", default="rk3588")
+    convert_rknn.add_argument("--quantize", type=int, choices=[8, 16], default=16)
+    convert_rknn.add_argument("--dataset", help="INT8 calibration dataset list")
+    convert_rknn.add_argument("--verbose", action="store_true")
+
+    compare = subparsers.add_parser("compare-backends", help="Compare two detector backends on an image directory")
+    compare.add_argument("--reference", required=True, help="Reference backend configuration")
+    compare.add_argument("--candidate", required=True, help="Candidate backend configuration")
+    compare.add_argument("--images", required=True, help="Image directory")
+    compare.add_argument("--output", required=True, help="Report output directory")
+    compare.add_argument("--iou-threshold", type=float, default=0.8)
+    compare.add_argument("--verbose", action="store_true")
     return parser
 
 
@@ -128,5 +163,27 @@ def main(argv: list[str] | None = None) -> None:
         elif args.command == "export":
             output = export_model(args.config, args.format)
             print(f"Exported: {output}")
+        elif args.command == "prepare-profile":
+            profile, metadata = prepare_prompt_profile(args.config, args.output)
+            print(f"Prompt profile: {profile}\nMetadata: {metadata}")
+        elif args.command == "export-onnx":
+            output = export_detection_onnx(args.config, args.profile, args.output)
+            print(f"Detection-only ONNX: {output}")
+        elif args.command == "export-rknn-onnx":
+            output = export_rknn_source_onnx(args.config, args.profile, args.output)
+            print(f"RKNN source ONNX: {output}")
+        elif args.command == "convert-rknn":
+            build_config = RKNNBuildConfig(target=args.target, quantize=args.quantize, batch=1)
+            output = convert_onnx_to_rknn(args.onnx, args.output, build_config, args.dataset)
+            print(f"RKNN model: {output}")
+        elif args.command == "compare-backends":
+            output = compare_directory(
+                args.reference,
+                args.candidate,
+                args.images,
+                args.output,
+                args.iou_threshold,
+            )
+            print(f"Backend comparison: {output}")
     except (FileNotFoundError, ValueError, OSError, RuntimeError) as exc:
         parser.exit(2, f"Error: {exc}\n")

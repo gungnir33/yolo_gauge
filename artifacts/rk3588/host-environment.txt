@@ -1,0 +1,13 @@
+validation_date=2026-08-31
+python=3.13.5
+torch=2.13.0+cpu
+ultralytics=8.4.121
+onnx=1.18.0
+onnxruntime=1.29.0
+host=Intel Core Ultra 9 285K
+rknn_python=3.10.12
+rknn_toolkit2=2.3.2
+rknn_onnx=1.18.0
+rknn_onnxruntime=1.23.2
+rknn_numpy=1.26.4
+rknn_opencv=4.11.0.86

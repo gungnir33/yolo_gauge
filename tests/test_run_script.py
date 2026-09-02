@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -122,3 +123,63 @@ def test_one_click_script_rejects_missing_input(tmp_path):
     result = run_script("--input", str(tmp_path / "missing"))
     assert result.returncode == 2
     assert "输入路径不存在" in result.stderr
+
+
+def test_rknn_launch_script_help():
+    script = Path("scripts/run_rknn_detection.sh")
+
+    result = subprocess.run(["bash", str(script), "--help"], text=True, capture_output=True, check=False)
+
+    assert result.returncode == 0
+    assert "--model" in result.stdout
+    assert "--input" in result.stdout
+    assert "--output" in result.stdout
+    assert "--core-mask" in result.stdout
+
+
+def test_rknn_launch_script_resolves_default_model_from_project_root(tmp_path):
+    project = tmp_path / "project with spaces"
+    (project / "scripts").mkdir(parents=True)
+    (project / "configs").mkdir()
+    (project / "artifacts" / "rk3588").mkdir(parents=True)
+    (project / ".venv" / "bin").mkdir(parents=True)
+    shutil.copy2(PROJECT_ROOT / "scripts" / "run_rknn_detection.sh", project / "scripts")
+    (project / "configs" / "rk3588.yaml").write_text(
+        "model:\n  backend: rknn\n  rknn_path: artifacts/rk3588/model.rknn\n",
+        encoding="utf-8",
+    )
+    (project / "artifacts" / "rk3588" / "model.rknn").write_bytes(b"model")
+    image = tmp_path / "input image.jpg"
+    image.write_bytes(b"image")
+    capture = tmp_path / "rknn-capture.txt"
+    fake_python = project / ".venv" / "bin" / "python"
+    fake_python.write_text(
+        '#!/usr/bin/env bash\n'
+        'if [[ "$1" == "-c" ]]; then exec "$REAL_PYTHON" "$@"; fi\n'
+        'pwd > "$CAPTURE_PATH"\n'
+        'printf "%s\\n" "$@" >> "$CAPTURE_PATH"\n',
+        encoding="utf-8",
+    )
+    fake_python.chmod(0o755)
+    env = {**os.environ, "REAL_PYTHON": sys.executable, "CAPTURE_PATH": str(capture)}
+
+    result = subprocess.run(
+        [
+            "bash",
+            str(project / "scripts" / "run_rknn_detection.sh"),
+            "--python",
+            str(fake_python),
+            "--input",
+            str(image),
+        ],
+        cwd=tmp_path,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    captured = capture.read_text(encoding="utf-8").splitlines()
+    assert captured[0] == str(project)
+    assert captured[1:4] == ["-m", "gauge_detector.board_cli", "detect"]

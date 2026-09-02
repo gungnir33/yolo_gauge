@@ -12,6 +12,12 @@ def test_cli_parser_loads():
     args = parser.parse_args(["detect", "--image", "image.jpg"])
     assert not hasattr(args, "profile")
 
+    profile_args = parser.parse_args(
+        ["prepare-profile", "--config", "configs/default.yaml", "--output", "artifacts/gauge-prompts.npz"]
+    )
+    assert profile_args.command == "prepare-profile"
+    assert profile_args.output == "artifacts/gauge-prompts.npz"
+
 
 def test_prompt_free_checkpoint_is_rejected():
     from gauge_detector.model import YOLOEModel
@@ -40,6 +46,7 @@ def test_text_prompts_are_initialized_once():
 def test_detector_uses_agnostic_nms_and_unifies_class(monkeypatch, tmp_path):
     import torch
 
+    from gauge_detector.backends import PyTorchBackend
     from gauge_detector.detector import GaugeDetector
 
     class Boxes:
@@ -82,7 +89,17 @@ def test_detector_uses_agnostic_nms_and_unifies_class(monkeypatch, tmp_path):
         "  agnostic_nms: true\n",
         encoding="utf-8",
     )
-    monkeypatch.setattr("gauge_detector.detector.YOLOEModel", FakeModel)
+    monkeypatch.setattr(
+        "gauge_detector.detector.create_backend",
+        lambda cfg: PyTorchBackend(
+            cfg["model"]["name"],
+            cfg["model"]["device"],
+            cfg["model"]["imgsz"],
+            cfg["model"]["half"],
+            cfg["text_prompt"]["prompts"],
+            model_factory=FakeModel,
+        ),
+    )
     detector = GaugeDetector(str(config))
     result = detector.detect_array(np.zeros((100, 100, 3), dtype=np.uint8))
     model = FakeModel.instances[0]
@@ -99,5 +116,5 @@ def test_detector_uses_agnostic_nms_and_unifies_class(monkeypatch, tmp_path):
 def test_yoloe_import_and_model_load():
     from gauge_detector.model import YOLOEModel
 
-    model = YOLOEModel("yoloe-26n-seg.pt", device="cpu", imgsz=640, half=False)
+    model = YOLOEModel("yoloe-26s-seg.pt", device="cpu", imgsz=960, half=False)
     assert model.load() is model.raw

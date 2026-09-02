@@ -44,6 +44,10 @@ class YOLOEModel:
     def raw(self):
         return self.load()
 
+    @property
+    def text_prompts(self) -> tuple[str, ...] | None:
+        return self._text_prompts
+
     def load(self):
         if self._model is None:
             from ultralytics import YOLOE
@@ -83,6 +87,29 @@ class YOLOEModel:
             ) from exc
         self._text_prompts = normalized
         LOGGER.info("Text Prompt initialized: %d prompt(s)", len(normalized))
+
+    def save_prompt_embeddings(self, path: str | Path) -> Path:
+        if self._text_prompts is None:
+            raise RuntimeError("Text prompts must be initialized before saving prompt embeddings.")
+        output = Path(path)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        saved = self.raw.save_prompt_embeddings(output)
+        return Path(saved)
+
+    def load_prompt_embeddings(self, path: str | Path, prompts: list[str]) -> None:
+        profile = Path(path)
+        if not profile.is_file():
+            raise FileNotFoundError(f"Prompt embedding profile not found: {profile}")
+        normalized = tuple(prompt.strip() for prompt in prompts if isinstance(prompt, str) and prompt.strip())
+        if not normalized or len(normalized) != len(prompts) or len(set(normalized)) != len(normalized):
+            raise ValueError("YOLOE text prompts must be non-empty and unique.")
+        if self._text_prompts is not None:
+            if self._text_prompts != normalized:
+                raise RuntimeError("YOLOE text prompts have already been initialized for this model instance.")
+            return
+        self.raw.load_prompt_embeddings(profile)
+        self._text_prompts = normalized
+        LOGGER.info("Prompt embedding profile loaded: %s", profile)
 
     def warmup(self, runs: int = 3) -> None:
         if runs <= 0:

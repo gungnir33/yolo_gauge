@@ -1,0 +1,50 @@
+{
+  "batch": 1,
+  "dataset": "yoloe_gauge_detector/artifacts/rk3588/candidates/int8/calibration.txt",
+  "input_dtype": "uint8",
+  "input_layout": "NHWC",
+  "input_shape": [
+    544,
+    960
+  ],
+  "normalization": {
+    "mean_values": [
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "std_values": [
+      [
+        255,
+        255,
+        255
+      ]
+    ]
+  },
+  "prompts": [
+    "analog gauge",
+    "dial gauge",
+    "pressure gauge",
+    "pressure meter",
+    "industrial gauge"
+  ],
+  "quantize": 8,
+  "raw_box_format": "xywh",
+  "raw_head": "one2one",
+  "rknn_sha256": "79ed893761798ce9445000e92501dce23a8a3c1afa9b759925659f59a7c7d1fa",
+  "schema_version": 1,
+  "source_metadata_sha256": "13ba18334931452c2807952fe923917f487516f5d5c98602f9e0578439005d2f",
+  "source_onnx": "yoloe-26s-rknn-source.onnx",
+  "source_onnx_sha256": "54c07ce97a1ed5bfb2b1b5920ede0d2ab9568dbb703d6f9dc42d09ea4853a6e2",
+  "source_output_shapes": [
+    [
+      1,
+      9,
+      10710
+    ]
+  ],
+  "target": "rk3588",
+  "toolkit_version": "2.3.2"
+}
