@@ -15,4 +15,5 @@ outputs/*
 profiles/*.npz
 artifacts/**/*.npz
 artifacts/*.csv
+dist/
 :memory:.ses

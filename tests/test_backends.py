@@ -187,6 +187,7 @@ class FakeRKNNLite:
         self.load_calls = []
         self.init_calls = []
         self.inference_calls = []
+        self.inference_formats = []
         self.release_calls = 0
 
     def load_rknn(self, path):
@@ -197,8 +198,9 @@ class FakeRKNNLite:
         self.init_calls.append(core_mask)
         return self.init_result
 
-    def inference(self, *, inputs):
+    def inference(self, *, inputs, data_format):
         self.inference_calls.append(inputs)
+        self.inference_formats.append(data_format)
         return [np.array([[[50], [50], [20], [20], [0.9]]], dtype=np.float32)]
 
     def release(self):
@@ -220,7 +222,9 @@ def test_rknnlite_backend_initializes_once_decodes_raw_output_and_releases():
     assert prediction.detections[0].xyxy == pytest.approx([40, 40, 60, 60])
     assert runtime.load_calls == ["model.rknn"]
     assert runtime.init_calls == ["AUTO"]
-    assert runtime.inference_calls[0][0][0, 0].tolist() == [3, 2, 1]
+    assert runtime.inference_calls[0][0].shape == (1, 100, 100, 3)
+    assert runtime.inference_calls[0][0][0, 0, 0].tolist() == [3, 2, 1]
+    assert runtime.inference_formats == [["nhwc"]]
     assert runtime.release_calls == 1
 
 

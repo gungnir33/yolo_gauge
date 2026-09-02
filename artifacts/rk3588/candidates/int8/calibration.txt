@@ -1,0 +1,12 @@
+/home/mcl/code/YOLO/yoloe_gauge_detector/data/reference/stage_a/raw/00_round_pressure_orange.jpg
+/home/mcl/code/YOLO/yoloe_gauge_detector/data/reference/stage_a/raw/01_oil_temperature.jpg
+/home/mcl/code/YOLO/yoloe_gauge_detector/data/reference/stage_a/raw/02_tap_position.jpg
+/home/mcl/code/YOLO/yoloe_gauge_detector/data/reference/stage_a/raw/03_rect_leakage.jpg
+/home/mcl/code/YOLO/yoloe_gauge_detector/data/reference/stage_a/raw/04_oil_level_window.jpg
+/home/mcl/code/YOLO/yoloe_gauge_detector/data/reference/stage_a/raw/05_digital_single.jpg
+/home/mcl/code/YOLO/yoloe_gauge_detector/data/reference/stage_a/raw/06_round_leakage.jpg
+/home/mcl/code/YOLO/yoloe_gauge_detector/data/reference/stage_a/raw/07_switch_indicator.jpg
+/home/mcl/code/YOLO/yoloe_gauge_detector/data/reference/stage_a/raw/08_panel_digital.jpg
+/home/mcl/code/YOLO/yoloe_gauge_detector/data/reference/stage_a/raw/09_hood_pressure.jpg
+/home/mcl/code/YOLO/yoloe_gauge_detector/data/reference/stage_a/raw/10_round_leakage_red.jpg
+/home/mcl/code/YOLO/yoloe_gauge_detector/data/reference/stage_a/raw/11_round_leakage_front.jpg

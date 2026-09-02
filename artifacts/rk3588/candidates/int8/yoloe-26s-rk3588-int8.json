@@ -1,6 +1,6 @@
 {
   "batch": 1,
-  "dataset": null,
+  "dataset": "yoloe_gauge_detector/artifacts/rk3588/candidates/int8/calibration.txt",
   "input_dtype": "uint8",
   "input_layout": "NHWC",
   "input_shape": [
@@ -30,10 +30,10 @@
     "pressure meter",
     "industrial gauge"
   ],
-  "quantize": 16,
+  "quantize": 8,
   "raw_box_format": "xywh",
   "raw_head": "one2one",
-  "rknn_sha256": "bfd6f0cb2a7af95ce4a26a164310211985d9969ee0ab70208953bce0a18749fc",
+  "rknn_sha256": "79ed893761798ce9445000e92501dce23a8a3c1afa9b759925659f59a7c7d1fa",
   "schema_version": 1,
   "source_metadata_sha256": "13ba18334931452c2807952fe923917f487516f5d5c98602f9e0578439005d2f",
   "source_onnx": "yoloe-26s-rknn-source.onnx",

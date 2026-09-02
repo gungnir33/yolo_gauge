@@ -177,6 +177,7 @@ def convert_onnx_to_rknn(
         "prompts": source_metadata["prompts"],
         "normalization": {"mean_values": [[0, 0, 0]], "std_values": [[255, 255, 255]]},
         "dataset": str(dataset_path) if dataset_path is not None else None,
+        "rknn_sha256": hashlib.sha256(destination.read_bytes()).hexdigest(),
     }
     destination.with_suffix(".json").write_text(
         json.dumps(metadata, ensure_ascii=False, indent=2, sort_keys=True) + "\n",

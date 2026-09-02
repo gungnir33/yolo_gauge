@@ -1,7 +1,49 @@
+import os
+import subprocess
+import sys
+from pathlib import Path
+
 import numpy as np
 import pytest
 
 from gauge_detector.preprocess import LetterboxTransform, letterbox_rgb, onnx_tensor, restore_xyxy
+
+
+PROJECT_ROOT = Path(__file__).parents[1]
+
+
+def test_runtime_import_does_not_require_typing_typealias():
+    env = {**os.environ, "PYTHONPATH": str(PROJECT_ROOT / "src")}
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+                "; ".join(
+                    [
+                        "import dataclasses, importlib.util, sys, types, typing",
+                        "compat_typing = types.ModuleType('typing')",
+                        "compat_typing.__dict__.update({k: v for k, v in typing.__dict__.items() if k != 'TypeAlias'})",
+                        "sys.modules['typing'] = compat_typing",
+                    "sys.modules['cv2'] = types.ModuleType('cv2')",
+                    "sys.modules['numpy'] = types.ModuleType('numpy')",
+                    "path = 'src/gauge_detector/preprocess.py'",
+                    "spec = importlib.util.spec_from_file_location('preprocess_compat', path)",
+                    "module = importlib.util.module_from_spec(spec)",
+                    "sys.modules[spec.name] = module",
+                    "spec.loader.exec_module(module)",
+                    "print('import-ok')",
+                ]
+            ),
+        ],
+        cwd=PROJECT_ROOT,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "import-ok"
 
 
 def test_letterbox_records_center_padding_for_wide_image_and_converts_rgb():

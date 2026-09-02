@@ -90,6 +90,7 @@ def test_fp16_conversion_configures_normalization_and_writes_metadata(monkeypatc
     assert metadata["input_dtype"] == "uint8"
     assert metadata["raw_head"] == "one2one"
     assert metadata["prompts"] == ["a", "b", "c", "d", "e"]
+    assert metadata["rknn_sha256"] == hashlib.sha256(b"rknn").hexdigest()
 
 
 def test_conversion_rejects_end2end_onnx(monkeypatch, tmp_path):

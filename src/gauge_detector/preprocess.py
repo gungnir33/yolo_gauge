@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TypeAlias
+from typing import List, Tuple, Union
 
 import cv2
 import numpy as np
 
 
-InputShape: TypeAlias = int | tuple[int, int] | list[int]
+InputShape = Union[int, Tuple[int, int], List[int]]
 
 
 @dataclass(frozen=True)

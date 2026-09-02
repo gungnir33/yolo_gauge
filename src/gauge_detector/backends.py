@@ -7,7 +7,6 @@ from typing import Any, Callable
 
 import numpy as np
 
-from .model import YOLOEModel
 from .preprocess import InputShape, letterbox_rgb, normalize_input_shape, onnx_tensor
 from .runtime_output import decode_end2end_output, decode_raw_output
 from .types import Detection
@@ -28,8 +27,12 @@ class PyTorchBackend:
         half: bool,
         prompts: list[str],
         *,
-        model_factory: Callable[..., Any] = YOLOEModel,
+        model_factory: Callable[..., Any] | None = None,
     ):
+        if model_factory is None:
+            from .model import YOLOEModel
+
+            model_factory = YOLOEModel
         self.model = model_factory(model_name, device, imgsz, half)
         self.model.set_text_prompts(prompts)
 
@@ -167,8 +170,9 @@ class RKNNLiteBackend:
         if self._closed:
             raise RuntimeError("RKNNLite backend is closed.")
         rgb, transform = letterbox_rgb(image, self.input_shape, self.pad_color)
+        input_tensor = np.expand_dims(rgb, axis=0)
         started = time.perf_counter()
-        outputs = self.runtime.inference(inputs=[rgb])
+        outputs = self.runtime.inference(inputs=[input_tensor], data_format=["nhwc"])
         elapsed_ms = (time.perf_counter() - started) * 1000
         if not isinstance(outputs, (list, tuple)) or len(outputs) != 1:
             shapes = [getattr(item, "shape", None) for item in outputs] if isinstance(outputs, (list, tuple)) else None
@@ -185,7 +189,7 @@ class RKNNLiteBackend:
 def create_backend(
     config: dict,
     *,
-    pytorch_model_factory: Callable[..., Any] = YOLOEModel,
+    pytorch_model_factory: Callable[..., Any] | None = None,
     onnx_session_factory: Callable[[str], Any] | None = None,
     rknn_runtime_factory: Callable[[], Any] | None = None,
 ):

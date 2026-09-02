@@ -89,4 +89,4 @@ if [[ -d "${INPUT}" ]]; then
 else
   ARGS=(detect --image "${INPUT}" --output "${OUTPUT}" --config "${TEMP_CONFIG}")
 fi
-"${PYTHON_BIN}" -m gauge_detector "${ARGS[@]}"
+"${PYTHON_BIN}" -m gauge_detector.board_cli "${ARGS[@]}"

@@ -180,4 +180,6 @@ def test_rknn_launch_script_resolves_default_model_from_project_root(tmp_path):
     )
 
     assert result.returncode == 0
-    assert capture.read_text(encoding="utf-8").splitlines()[0] == str(project)
+    captured = capture.read_text(encoding="utf-8").splitlines()
+    assert captured[0] == str(project)
+    assert captured[1:4] == ["-m", "gauge_detector.board_cli", "detect"]
